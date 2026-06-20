@@ -1,4 +1,5 @@
-import 'package:easyedubd_app/features/presentation/screens/auth/auth_gate.dart';
+import 'package:easyedubd_app/core/router/app_router.dart';
+
 import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -19,14 +20,17 @@ void main() async {
 
 final supabase = Supabase.instance.client;
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       title: 'Easy Education BD',
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
@@ -46,7 +50,6 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const AuthGate(),
     );
   }
 }
