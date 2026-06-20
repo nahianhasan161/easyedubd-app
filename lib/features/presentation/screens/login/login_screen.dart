@@ -64,8 +64,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 final googleAccount = await signIn.authenticate();
                 final googleAuthorization = await googleAccount
                     .authorizationClient
-                    .authorizationForScopes([]);
-                final googleAuthentication = googleAccount!.authentication;
+                    .authorizationForScopes([
+                      'https://www.googleapis.com/auth/userinfo.email',
+                    ]);
+                final googleAuthentication = googleAccount.authentication;
                 final idToken = googleAuthentication.idToken;
                 final accessToken = googleAuthorization!.accessToken;
 
@@ -82,6 +84,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
               icon: const Icon(Icons.login),
               label: const Text("Sign in With Google"),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final GoogleSignIn signIn = GoogleSignIn.instance;
+
+                // Sign out from Google
+                //await GoogleSignIn.instance.disconnect();
+                await signIn.signOut();
+
+                // Sign out from Supabase
+
+                await supabase.auth.signOut();
+              },
+
+              icon: const Icon(Icons.logout),
+
+              label: const Text('Logout'),
             ),
           ],
         ),

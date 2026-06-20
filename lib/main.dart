@@ -1,6 +1,8 @@
+import 'package:easyedubd_app/features/presentation/screens/auth/auth_gate.dart';
 import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -12,7 +14,7 @@ void main() async {
 
     publishableKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY'],
   );
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 final supabase = Supabase.instance.client;
@@ -44,7 +46,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const LoginScreen(),
+      home: const AuthGate(),
     );
   }
 }
