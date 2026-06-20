@@ -11,9 +11,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final supabase = ref.read(supabaseProvider);
+  final supabase = ref.watch(supabaseProvider);
   return GoRouter(
     initialLocation: '/',
+
     redirect: (context, state) {
       final session = supabase.auth.currentSession;
       final loggingIn = state.matchedLocation == '/';

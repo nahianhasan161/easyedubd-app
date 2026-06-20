@@ -72,7 +72,7 @@ class _VideoScreenState extends State<VideoScreen> {
                 videoSourceConfiguration:
                     VideoSourceConfiguration.youtube(
                       videoUrl: Uri.parse(
-                        'https://www.youtube.com/watch?v=cuqZPx0H7a0',
+                        'https://www.youtube.com/watch?v=NrLLeV_VqhM',
                       ),
                       preferredQualities: [
                         OmniVideoQuality.high720,

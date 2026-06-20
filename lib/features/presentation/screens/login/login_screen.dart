@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:easyedubd_app/features/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -84,6 +85,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
               icon: const Icon(Icons.login),
               label: const Text("Sign in With Google"),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                context.push('/dashboard');
+              },
+
+              icon: const Icon(Icons.dashboard),
+
+              label: const Text('Dashboard'),
             ),
             ElevatedButton.icon(
               onPressed: () async {

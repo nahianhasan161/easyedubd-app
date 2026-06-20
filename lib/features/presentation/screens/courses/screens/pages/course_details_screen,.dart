@@ -53,7 +53,7 @@ class CourseDetailsScreen extends ConsumerWidget {
                     trailing: const Icon(Icons.arrow_forward_ios, size: 14),
 
                     onTap: () {
-                      context.push('/lesson/IF1b0Wy4mpg'); //+ lesson.videoId
+                      context.push('/lesson/${lesson.videoId}');
                     },
                   );
                 }).toList(),
