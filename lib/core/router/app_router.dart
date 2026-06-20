@@ -18,8 +18,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final session = supabase.auth.currentSession;
       final loggingIn = state.matchedLocation == '/';
-      if (session == null && !loggingIn) return '/';
-      if (session != null && loggingIn) return '/dashboard';
+      /* if (session == null && !loggingIn) return '/';
+      if (session != null && loggingIn) return '/dashboard'; */
       return null;
     },
     routes: [
