@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/providers/router_provider.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/course_list_screen.dart';
@@ -11,15 +12,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final supabase = ref.watch(supabaseProvider);
+  // 1. Watch the listenable so the router reacts to changes
+  final listenable = ref.watch(authListenable);
+
+  final supabase = ref.read(supabaseProvider);
   return GoRouter(
     initialLocation: '/',
-
+    refreshListenable: listenable, // <---
     redirect: (context, state) {
       final session = supabase.auth.currentSession;
       final loggingIn = state.matchedLocation == '/';
-      /* if (session == null && !loggingIn) return '/';
-      if (session != null && loggingIn) return '/dashboard'; */
+      if (session == null && !loggingIn) return '/';
+      if (session != null && loggingIn) return '/dashboard';
       return null;
     },
     routes: [

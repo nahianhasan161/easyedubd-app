@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/providers/auth_notifier.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/course_list_screen.dart';
 import 'package:easyedubd_app/shared/widgets/omi_player.dart';
@@ -22,20 +23,11 @@ class DashboardScreen extends ConsumerWidget {
         ), */
         actions: [
           ElevatedButton.icon(
-            onPressed: () async {
-              final GoogleSignIn signIn = GoogleSignIn.instance;
-
-              // Sign out from Google
-              //await GoogleSignIn.instance.disconnect();
-              await signIn.signOut();
-
-              // Sign out from Supabase
-
-              await supabase.auth.signOut();
+            onPressed: () {
+              ref.read(authControllerProvider.notifier).logout();
+              // This executes your AuthNotifier logic
             },
-
             icon: const Icon(Icons.logout),
-
             label: const Text('Logout'),
           ),
           ElevatedButton.icon(
