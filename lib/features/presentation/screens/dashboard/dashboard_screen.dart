@@ -28,7 +28,7 @@ class DashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.logout),
             label: const Text('Logout'),
           ),
-          ElevatedButton.icon(
+         /*  ElevatedButton.icon(
             onPressed: () {
               context.go('/videoplayer');
             },
@@ -36,8 +36,8 @@ class DashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.play_arrow),
 
             label: const Text('Omni'),
-          ),
-          ElevatedButton.icon(
+          ), */
+        /*   ElevatedButton.icon(
             onPressed: () {
               context.go('/youtubeplayer');
             },
@@ -45,7 +45,7 @@ class DashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.play_arrow),
 
             label: const Text('yt'),
-          ),
+          ), */
         ],
       ),
       body: const CourseListScreen(),

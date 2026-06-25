@@ -108,14 +108,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 10),
 
             /// GOOGLE LOGIN
-            ElevatedButton.icon(
+            /*   ElevatedButton.icon(
               onPressed: () {
                 ref.read(authControllerProvider.notifier).signInWithGoogle();
               },
               icon: Icon(Icons.abc),
               label: const Text("Sign in with Google"),
-            ),
-
+            ), */
             const SizedBox(height: 10),
 
             /// DASHBOARD
