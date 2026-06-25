@@ -1,4 +1,5 @@
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
+import 'package:easyedubd_app/shared/widgets/App_cached_image.dart';
 import 'package:flutter/material.dart';
 
 class CourseCard extends StatelessWidget {
@@ -22,10 +23,13 @@ class CourseCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
               ),
-              child: Image.network(
+              child: /*  Image.network(
                 course.imageUrl,
                 height: 160,
                 width: double.infinity,
+                fit: BoxFit.cover,
+              ), */ AppCachedImage(
+                url: course.imageUrl,
                 fit: BoxFit.cover,
               ),
             ),
@@ -56,14 +60,13 @@ class CourseCard extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   // META INFO
-                  Row(
+                  /*  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text("Chapters: ${course.totalChapters}"),
                       Text("Lessons: ${course.totalLessons}"),
                     ],
-                  ),
-
+                  ), */
                   const SizedBox(height: 10),
 
                   // PROGRESS BAR

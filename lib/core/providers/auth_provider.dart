@@ -16,6 +16,6 @@ final sessionProvider = Provider<Session?>((ref) {
   return authState.when(
     data: (data) => data.session,
     loading: () => null,
-    error: (_, __) => null,
+    error: (_, _) => null,
   );
 });

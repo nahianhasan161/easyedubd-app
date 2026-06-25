@@ -15,7 +15,25 @@ class VideoScreen extends StatefulWidget {
 
 class _VideoScreenState extends State<VideoScreen> {
   /// Controller that provides playback control (play, pause, etc.).
+  Key _playerKey = UniqueKey();
+
   OmniPlaybackController? _controller;
+  final TextEditingController _urlController = TextEditingController(
+    text: 'https://www.youtube.com/watch?v=NrLLeV_VqhM',
+  );
+
+  String _currentUrl = 'https://www.youtube.com/watch?v=NrLLeV_VqhM';
+
+  void _changeVideo() {
+    final url = _urlController.text.trim();
+
+    if (url.isEmpty) return;
+
+    setState(() {
+      _currentUrl = url;
+      _playerKey = UniqueKey(); // 🔥 THIS FORCES PLAYER RELOAD
+    });
+  }
 
   void _update() {
     // Schedule the UI update after the current build frame completes.
@@ -29,6 +47,7 @@ class _VideoScreenState extends State<VideoScreen> {
   @override
   void dispose() {
     _controller?.removeListener(_update);
+    _urlController.dispose();
     super.dispose();
   }
 
@@ -50,6 +69,7 @@ class _VideoScreenState extends State<VideoScreen> {
         children: [
           Expanded(
             child: OmniVideoPlayer(
+              key: _playerKey,
               // Callbacks
               callbacks: VideoPlayerCallbacks(
                 onControllerCreated: (controller) {
@@ -71,9 +91,10 @@ class _VideoScreenState extends State<VideoScreen> {
               configuration: VideoPlayerConfiguration(
                 videoSourceConfiguration:
                     VideoSourceConfiguration.youtube(
-                      videoUrl: Uri.parse(
+                      /*  videoUrl: Uri.parse(
                         'https://www.youtube.com/watch?v=NrLLeV_VqhM',
-                      ),
+                      ), */
+                      videoUrl: Uri.parse(_currentUrl),
                       preferredQualities: [
                         OmniVideoQuality.high720,
                         OmniVideoQuality.low144,
@@ -159,7 +180,26 @@ class _VideoScreenState extends State<VideoScreen> {
               ),
             ),
           ),
-
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _urlController,
+                  decoration: const InputDecoration(
+                    labelText: "Enter YouTube URL",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: _changeVideo,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text("Play Video"),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
 
           Padding(

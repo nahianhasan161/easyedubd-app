@@ -22,7 +22,7 @@ final List<Course> dummyCourses = [
             id: 'l1',
             title: 'Lecture 1',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/NrLLeV_VqhM',
+
             duration: const Duration(minutes: 5),
             videoId: 'NrLLeV_VqhM',
           ),
@@ -30,7 +30,7 @@ final List<Course> dummyCourses = [
             id: 'l2',
             title: 'Lecture 2',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/Q43fEcRBCOE',
+
             duration: const Duration(minutes: 5),
             videoId: 'Q43fEcRBCOE',
           ),
@@ -46,7 +46,7 @@ final List<Course> dummyCourses = [
             id: 'l4',
             title: 'Lecture 4',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/-RnoG_P4LbY',
+
             duration: const Duration(minutes: 5),
             videoId: '-RnoG_P4LbY',
           ),
@@ -61,7 +61,7 @@ final List<Course> dummyCourses = [
             id: 'l1',
             title: 'Lecture 1',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/OwwYolpyKcE',
+
             duration: const Duration(minutes: 5),
             videoId: 'OwwYolpyKcE',
           ),
@@ -69,7 +69,7 @@ final List<Course> dummyCourses = [
             id: 'l2',
             title: 'Lecture 2',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/hAqjypkTcgo',
+
             duration: const Duration(minutes: 5),
             videoId: 'hAqjypkTcgo',
           ),
@@ -77,7 +77,7 @@ final List<Course> dummyCourses = [
             id: 'l3',
             title: 'Lecture 3',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/4jL1LxZkSVE',
+
             duration: const Duration(minutes: 5),
             videoId: '4jL1LxZkSVE',
           ),
@@ -85,7 +85,7 @@ final List<Course> dummyCourses = [
             id: 'l4',
             title: 'Lecture 4',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/qXcPuPhuo30',
+
             duration: const Duration(minutes: 5),
             videoId: 'qXcPuPhuo30',
           ),
@@ -101,7 +101,7 @@ final List<Course> dummyCourses = [
             id: 'l6',
             title: 'Lecture 6',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/mOYTCs0BiVg',
+
             duration: const Duration(minutes: 5),
             videoId: 'mOYTCs0BiVg',
           ),
@@ -109,7 +109,7 @@ final List<Course> dummyCourses = [
             id: 'l7',
             title: 'Lecture 7',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/B4eRnJLKyZ4',
+
             duration: const Duration(minutes: 5),
             videoId: 'B4eRnJLKyZ4',
           ),
@@ -124,7 +124,7 @@ final List<Course> dummyCourses = [
             id: 'l1',
             title: 'Lecture 1',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/1lae-4dX0LU',
+
             duration: const Duration(minutes: 5),
             videoId: '1lae-4dX0LU',
           ),
@@ -132,7 +132,7 @@ final List<Course> dummyCourses = [
             id: 'l2',
             title: 'Lecture 2',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/fEqbMugEPQM',
+
             duration: const Duration(minutes: 5),
             videoId: 'fEqbMugEPQM',
           ),
@@ -140,7 +140,7 @@ final List<Course> dummyCourses = [
             id: 'l3',
             title: 'Lecture 3',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/OKDTKExrmcI',
+
             duration: const Duration(minutes: 5),
             videoId: 'OKDTKExrmcI',
           ),
@@ -148,7 +148,7 @@ final List<Course> dummyCourses = [
             id: 'l4',
             title: 'Lecture 4',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/C9FyLBltA1o',
+
             duration: const Duration(minutes: 5),
             videoId: 'C9FyLBltA1o',
           ),
@@ -156,7 +156,7 @@ final List<Course> dummyCourses = [
             id: 'l5',
             title: 'Lecture 5',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/AnabAi9Olug',
+
             duration: const Duration(minutes: 5),
             videoId: 'AnabAi9Olug',
           ),
@@ -164,7 +164,7 @@ final List<Course> dummyCourses = [
             id: 'l6',
             title: 'Lecture 6',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/e4DPGpDnXOg',
+
             duration: const Duration(minutes: 5),
             videoId: 'e4DPGpDnXOg',
           ),
@@ -172,7 +172,7 @@ final List<Course> dummyCourses = [
             id: 'l7',
             title: 'Lecture 7',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/ChETjXV33bA',
+
             duration: const Duration(minutes: 5),
             videoId: 'ChETjXV33bA',
           ),
@@ -187,7 +187,7 @@ final List<Course> dummyCourses = [
             id: 'l1',
             title: 'Lecture 1',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/GrpA0x6xnQQ',
+
             duration: const Duration(minutes: 5),
             videoId: 'GrpA0x6xnQQ',
           ),
@@ -195,7 +195,7 @@ final List<Course> dummyCourses = [
             id: 'l2',
             title: 'Lecture 2',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/nQ2if2peOTk',
+
             duration: const Duration(minutes: 5),
             videoId: 'nQ2if2peOTk',
           ),
@@ -210,7 +210,7 @@ final List<Course> dummyCourses = [
             id: 'l1',
             title: 'Lecture 1',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/RHgr0ZqSPKU',
+
             duration: const Duration(minutes: 5),
             videoId: 'RHgr0ZqSPKU',
           ),
@@ -218,7 +218,7 @@ final List<Course> dummyCourses = [
             id: 'l2',
             title: 'Lecture 2',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/NJpL9qIxklU',
+
             duration: const Duration(minutes: 5),
             videoId: 'NJpL9qIxklU',
           ),
@@ -226,7 +226,7 @@ final List<Course> dummyCourses = [
             id: 'l3',
             title: 'Lecture 3',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/rG5p4Rj40Zk',
+
             duration: const Duration(minutes: 5),
             videoId: 'rG5p4Rj40Zk',
           ),
@@ -234,7 +234,7 @@ final List<Course> dummyCourses = [
             id: 'l4',
             title: 'Lecture 4',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/aWsz68QA3s4',
+
             duration: const Duration(minutes: 5),
             videoId: 'aWsz68QA3s4',
           ),
@@ -249,7 +249,7 @@ final List<Course> dummyCourses = [
             id: 'l1',
             title: 'Lecture 1',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/9jsnGGKDtXA',
+
             duration: const Duration(minutes: 5),
             videoId: '9jsnGGKDtXA',
           ),
@@ -257,7 +257,7 @@ final List<Course> dummyCourses = [
             id: 'l2',
             title: 'Lecture 2',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/RaclHe0eJtM',
+
             duration: const Duration(minutes: 5),
             videoId: 'RaclHe0eJtM',
           ),
@@ -265,7 +265,7 @@ final List<Course> dummyCourses = [
             id: 'l3',
             title: 'Lecture 3',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/uMKMQ6rLS5w',
+
             duration: const Duration(minutes: 5),
             videoId: 'uMKMQ6rLS5w',
           ),
@@ -273,7 +273,7 @@ final List<Course> dummyCourses = [
             id: 'l4',
             title: 'Lecture 4',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/rngZcxPARk8',
+
             duration: const Duration(minutes: 5),
             videoId: 'rngZcxPARk8',
           ),
@@ -281,7 +281,7 @@ final List<Course> dummyCourses = [
             id: 'l5',
             title: 'Lecture 5',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/y0jGUDhM5Mo',
+
             duration: const Duration(minutes: 5),
             videoId: 'y0jGUDhM5Mo',
           ),
@@ -289,7 +289,7 @@ final List<Course> dummyCourses = [
             id: 'l6',
             title: 'Lecture 6',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/szlp5jk_QCY',
+
             duration: const Duration(minutes: 5),
             videoId: 'szlp5jk_QCY',
           ),
@@ -297,7 +297,7 @@ final List<Course> dummyCourses = [
             id: 'l7',
             title: 'Lecture 7',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/UM7a0XMZYn8',
+
             duration: const Duration(minutes: 5),
             videoId: 'UM7a0XMZYn8',
           ),
@@ -305,7 +305,7 @@ final List<Course> dummyCourses = [
             id: 'l8',
             title: 'Lecture 8',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/JgTTKNcjiyg',
+
             duration: const Duration(minutes: 5),
             videoId: 'JgTTKNcjiyg',
           ),
@@ -313,7 +313,7 @@ final List<Course> dummyCourses = [
             id: 'l9',
             title: 'Lecture 9',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/Z2ybeqp7QEk',
+
             duration: const Duration(minutes: 5),
             videoId: 'Z2ybeqp7QEk',
           ),
@@ -321,7 +321,7 @@ final List<Course> dummyCourses = [
             id: 'l10',
             title: 'Lecture 10',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/ZanVF3Ug_4o',
+
             duration: const Duration(minutes: 5),
             videoId: 'ZanVF3Ug_4o',
           ),
@@ -336,7 +336,7 @@ final List<Course> dummyCourses = [
             id: 'l1',
             title: 'Lecture 1',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/oQ1-JyI4kp8',
+
             duration: const Duration(minutes: 5),
             videoId: 'oQ1-JyI4kp8',
           ),
@@ -344,7 +344,7 @@ final List<Course> dummyCourses = [
             id: 'l2',
             title: 'Lecture 2',
             description: 'Video Class',
-            videoUrl: 'https://youtu.be/LDyUFb7jHKo',
+
             duration: const Duration(minutes: 5),
             videoId: 'LDyUFb7jHKo',
           ),

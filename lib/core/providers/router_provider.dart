@@ -5,6 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final authListenable = Provider<Listenable>((ref) {
   final controller = ChangeNotifier();
-  ref.listen(authStateProvider, (_, __) => controller.notifyListeners());
+  ref.listen(authStateProvider, (_, _) => controller.notifyListeners());
   return controller;
 });

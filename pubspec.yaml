@@ -41,6 +41,10 @@ dependencies:
   omni_video_player: ^3.5.0
   go_router: ^17.3.0
   flutter_launcher_icons: ^0.14.4
+  font_awesome_flutter: ^11.0.0
+  youtube_player_flutter: ^9.1.1
+  collection: ^1.19.1
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:

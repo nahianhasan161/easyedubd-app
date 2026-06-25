@@ -1,5 +1,4 @@
-
-import 'package:easyedubd_app/features/presentation/screens/courses/models/lessons.dart';
+import 'lessons.dart'; // Ensure Lesson is imported
 
 class Chapter {
   final String id;
@@ -14,5 +13,15 @@ class Chapter {
     required this.lessons,
   });
 
-  int get totalLessons => lessons.length;
+  factory Chapter.fromJson(Map<String, dynamic> json) {
+    return Chapter(
+      id: json['id'].toString(),
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      // Note: Ensure the key 'lesson' matches your Supabase query return
+      lessons: (json['lesson'] as List? ?? [])
+          .map((e) => Lesson.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }

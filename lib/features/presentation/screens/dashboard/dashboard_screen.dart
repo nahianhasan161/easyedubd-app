@@ -1,11 +1,9 @@
 import 'package:easyedubd_app/core/providers/auth_notifier.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
-import 'package:easyedubd_app/features/presentation/screens/courses/screens/course_list_screen.dart';
-import 'package:easyedubd_app/shared/widgets/omi_player.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -37,7 +35,16 @@ class DashboardScreen extends ConsumerWidget {
 
             icon: const Icon(Icons.play_arrow),
 
-            label: const Text('Video Player'),
+            label: const Text('Omni'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              context.go('/youtubeplayer');
+            },
+
+            icon: const Icon(Icons.play_arrow),
+
+            label: const Text('yt'),
           ),
         ],
       ),

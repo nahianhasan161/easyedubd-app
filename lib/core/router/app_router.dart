@@ -1,13 +1,14 @@
 import 'package:easyedubd_app/core/providers/router_provider.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
-
-import 'package:easyedubd_app/features/presentation/screens/courses/screens/course_list_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_details_screen,.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_player.dart';
 import 'package:easyedubd_app/features/presentation/screens/dashboard/dashboard_screen.dart';
-import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
 
+import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
 import 'package:easyedubd_app/shared/widgets/omi_player.dart';
+import 'package:easyedubd_app/shared/widgets/youtube_player.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -66,6 +67,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/videoplayer',
 
         builder: (context, state) => const VideoScreen(),
+      ),
+      GoRoute(
+        path: '/youtubeplayer',
+
+        builder: (context, state) => const YoutubePlayerScreen(),
       ),
     ],
   );

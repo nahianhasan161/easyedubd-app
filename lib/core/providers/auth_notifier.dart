@@ -18,6 +18,21 @@ class AuthController extends AsyncNotifier<Session?> {
     return supabase.auth.currentSession;
   }
 
+  Future<void> signInWithEmail(String email, String password) async {
+    state = const AsyncLoading();
+
+    try {
+      final response = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      state = AsyncData(response.session);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
   Future<void> signInWithGoogle() async {
     state = const AsyncLoading();
 
@@ -33,7 +48,7 @@ class AuthController extends AsyncNotifier<Session?> {
       );
 
       final googleUser = await googleSignIn.authenticate();
-      final auth = await googleUser.authentication;
+      final auth = googleUser.authentication;
 
       final idToken = auth.idToken;
 

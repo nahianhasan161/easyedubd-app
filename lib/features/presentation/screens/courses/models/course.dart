@@ -1,4 +1,4 @@
-import 'chapter.dart';
+import 'chapter.dart'; // Ensure you import your chapter model
 
 class Course {
   final String id;
@@ -17,8 +17,17 @@ class Course {
     required this.chapters,
   });
 
-  int get totalChapters => chapters.length;
-
-  int get totalLessons =>
-      chapters.fold(0, (sum, chapter) => sum + chapter.lessons.length);
+  factory Course.fromJson(Map<String, dynamic> json) {
+    return Course(
+      id: json['id'].toString(),
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      progress: (json['progress'] ?? 0.0).toDouble(),
+      // This maps the nested Supabase 'Chapter' key
+      chapters: (json['chapter'] as List? ?? [])
+          .map((e) => Chapter.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }

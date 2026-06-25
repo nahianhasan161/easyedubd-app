@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:omni_video_player/omni_video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class LessonPlayer extends StatefulWidget {
   final String videoId;
@@ -12,144 +12,141 @@ class LessonPlayer extends StatefulWidget {
 }
 
 class _LessonPlayerState extends State<LessonPlayer> {
-  OmniPlaybackController? _controller;
+  late YoutubePlayerController _controller;
+  bool _isPlayerReady = false;
+  double _currentSpeed = 1.0;
 
-  void _update() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
+  static const List<double> _speedOptions = [
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.25,
+    1.5,
+    1.75,
+    2.0,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = YoutubePlayerController(
+      initialVideoId: widget.videoId,
+      flags: const YoutubePlayerFlags(autoPlay: false, mute: false),
+    );
   }
 
   @override
   void dispose() {
-    _controller?.removeListener(_update);
+    _controller.dispose();
     super.dispose();
+  }
+
+  void _showSpeedPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Playback Speed',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              ..._speedOptions.map((speed) {
+                return ListTile(
+                  title: Text('${speed}x'),
+                  trailing: _currentSpeed == speed
+                      ? const Icon(Icons.check, color: Colors.red)
+                      : null,
+                  onTap: () {
+                    _controller.setPlaybackRate(speed);
+                    setState(() => _currentSpeed = speed);
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final videoUrl = Uri.parse(
-      'https://www.youtube.com/watch?v=${widget.videoId}',
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lesson Player'),
-
-        // ✅ FIXED BACK BUTTON
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            context.pop(); // correct GoRouter back navigation
-          },
-        ),
+    return YoutubePlayerBuilder(
+      player: YoutubePlayer(
+        controller: _controller,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: Colors.red,
+        onReady: () {
+          setState(() => _isPlayerReady = true);
+        },
       ),
-
-      body: Column(
-        children: [
-          Expanded(
-            child: OmniVideoPlayer(
-              callbacks: VideoPlayerCallbacks(
-                onControllerCreated: (controller) {
-                  _controller?.removeListener(_update);
-                  _controller = controller..addListener(_update);
-                },
-                onFullScreenToggled: (isFullScreen) {},
-                onOverlayControlsVisibilityChanged: (areVisible) {},
-                onCenterControlsVisibilityChanged: (areVisible) {},
-                onMuteToggled: (isMute) {},
-                onSeekStart: (pos) {},
-                onSeekEnd: (pos) {},
-                onSeekRequest: (target) => true,
-                onFinished: () {},
-                onReplay: () {},
-              ),
-
-              configuration: VideoPlayerConfiguration(
-                videoSourceConfiguration:
-                    VideoSourceConfiguration.youtube(
-                      videoUrl: videoUrl,
-                      preferredQualities: const [
-                        OmniVideoQuality.high720,
-                        OmniVideoQuality.low144,
-                      ],
-                      availableQualities: const [
-                        OmniVideoQuality.high1080,
-                        OmniVideoQuality.high720,
-                        OmniVideoQuality.medium480,
-                        OmniVideoQuality.medium360,
-                        OmniVideoQuality.low144,
-                      ],
-                      enableYoutubeWebViewFallback: true,
-                      forceYoutubeWebViewOnly: false,
-                    ).copyWith(
-                      autoPlay: false,
-                      initialPosition: Duration.zero,
-                      initialVolume: 1.0,
-                      initialPlaybackSpeed: 1.0,
-                      availablePlaybackSpeed: const [0.5, 1.0, 1.25, 1.5, 2.0],
-                      autoMuteOnStart: false,
-                      allowSeeking: true,
-                      synchronizeMuteAcrossPlayers: true,
-                      timeoutDuration: const Duration(seconds: 30),
-                    ),
-                playerTheme: OmniVideoPlayerThemeData().copyWith(
-                  icons: VideoPlayerIconTheme().copyWith(
-                    error: Icons.warning,
-                    playbackSpeedButton: Icons.speed,
-                  ),
-                  backdrop: VideoPlayerBackdropTheme().copyWith(
-                    backgroundColor: Colors.white,
-                    alpha: 25,
-                  ),
-                ),
-                playerUIVisibilityOptions: PlayerUIVisibilityOptions().copyWith(
-                  showSeekBar: true,
-                  showCurrentTime: true,
-                  showDurationTime: true,
-                  showRemainingTime: true,
-                  showLiveIndicator: true,
-                  showLoadingWidget: true,
-                  showErrorPlaceholder: true,
-                  showReplayButton: true,
-                  showThumbnailAtStart: true,
-                  showVideoBottomControlsBar: true,
-                  showFullScreenButton: true,
-                  showPlaybackSpeedButton: true,
-                  showMuteUnMuteButton: true,
-                  showPlayPauseReplayButton: true,
-                  useSafeAreaForBottomControls: true,
-                  enableForwardGesture: true,
-                  enableBackwardGesture: true,
-                  enableExitFullscreenOnVerticalSwipe: true,
-                  enableOrientationLock: true,
-                  controlsPersistenceDuration: const Duration(seconds: 3),
-                  fitVideoToBounds: true,
-                ),
-              ),
+      builder: (context, player) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Lesson Player'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                context.pop();
+              },
             ),
           ),
+          body: Column(
+            children: [
+              player,
 
-          const SizedBox(height: 16),
+              if (!_isPlayerReady)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
 
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _controller == null
-                ? const CircularProgressIndicator()
-                : ElevatedButton.icon(
-                    onPressed: () {
-                      _controller!.isPlaying
-                          ? _controller!.pause()
-                          : _controller!.play();
-                    },
-                    icon: Icon(
-                      _controller!.isPlaying ? Icons.pause : Icons.play_arrow,
+              const SizedBox(height: 16),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _isPlayerReady
+                          ? () => _controller.pause()
+                          : null,
+                      child: const Icon(Icons.pause),
                     ),
-                    label: Text(_controller!.isPlaying ? 'Pause' : 'Play'),
-                  ),
+                    ElevatedButton(
+                      onPressed: _isPlayerReady
+                          ? () => _controller.play()
+                          : null,
+                      child: const Icon(Icons.play_arrow),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _isPlayerReady ? _showSpeedPicker : null,
+                      icon: const Icon(Icons.speed),
+                      label: Text('${_currentSpeed}x'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _isPlayerReady
+                          ? () => _controller.toggleFullScreenMode()
+                          : null,
+                      child: const Icon(Icons.fullscreen),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
