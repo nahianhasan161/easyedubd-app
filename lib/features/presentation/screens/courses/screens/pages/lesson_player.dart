@@ -4,8 +4,9 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class LessonPlayer extends StatefulWidget {
   final String videoId;
+  final String title;
 
-  const LessonPlayer({super.key, required this.videoId});
+  const LessonPlayer({super.key, required this.videoId, required this.title});
 
   @override
   State<LessonPlayer> createState() => _LessonPlayerState();
@@ -92,7 +93,7 @@ class _LessonPlayerState extends State<LessonPlayer> {
       builder: (context, player) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Lesson Player'),
+            title: Text("${widget.title}"),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () {

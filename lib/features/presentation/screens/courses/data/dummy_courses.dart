@@ -1,4 +1,4 @@
-import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
+/* import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/chapter.dart';
 
 import 'package:easyedubd_app/features/presentation/screens/courses/models/lessons.dart';
@@ -353,3 +353,4 @@ final List<Course> dummyCourses = [
     ],
   ),
 ];
+ */

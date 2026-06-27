@@ -5,11 +5,19 @@ import 'package:flutter/material.dart';
 class CourseCard extends StatelessWidget {
   final Course course;
   final VoidCallback onTap;
+  final bool isEnrolled;
 
-  const CourseCard({super.key, required this.course, required this.onTap});
+  const CourseCard({
+    super.key,
+    required this.course,
+    required this.onTap,
+    this.isEnrolled = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isFree = course.is_free;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       elevation: 3,
@@ -18,20 +26,89 @@ class CourseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // IMAGE
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: /*  Image.network(
-                course.imageUrl,
-                height: 160,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ), */ AppCachedImage(
-                url: course.imageUrl,
-                fit: BoxFit.cover,
-              ),
+            // IMAGE + BADGES
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: AppCachedImage(
+                      url: course.imageUrl,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+
+                // FREE / PREMIUM BADGE
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isFree ? Colors.green : Colors.red,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isFree ? "FREE" : "PREMIUM",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ENROLLED BADGE
+                if (isEnrolled)
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        "ENROLLED",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // 🔒 / 🔓 ICON (NEW)
+                Positioned(
+                  bottom: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isEnrolled ? Icons.lock_open : Icons.lock,
+                      color: isEnrolled ? Colors.green : Colors.red,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             Padding(
@@ -50,6 +127,53 @@ class CourseCard extends StatelessWidget {
 
                   const SizedBox(height: 6),
 
+                  // YEAR + SUBJECT
+                  Row(
+                    children: [
+                      if (course.year.trim().isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            "${course.year} Year",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      if (course.subject.trim().isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            course.subject,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
                   // DESCRIPTION
                   Text(
                     course.description,
@@ -59,22 +183,8 @@ class CourseCard extends StatelessWidget {
 
                   const SizedBox(height: 10),
 
-                  // META INFO
-                  /*  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Chapters: ${course.totalChapters}"),
-                      Text("Lessons: ${course.totalLessons}"),
-                    ],
-                  ), */
-                  const SizedBox(height: 10),
-
                   // PROGRESS BAR
-                  LinearProgressIndicator(
-                    value: course.progress,
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  LinearProgressIndicator(value: course.progress, minHeight: 6),
 
                   const SizedBox(height: 6),
 

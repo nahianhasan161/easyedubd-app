@@ -1,7 +1,7 @@
 import 'package:easyedubd_app/core/providers/router_provider.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
-import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_details_screen,.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_details_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_player.dart';
 import 'package:easyedubd_app/features/presentation/screens/dashboard/dashboard_screen.dart';
 
@@ -47,7 +47,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/course/:courseId',
 
         builder: (context, state) {
-          final courseId = state.pathParameters['courseId'] ?? '';
+          final courseId = int.parse(state.pathParameters['courseId']!);
 
           return CourseDetailsScreen(courseId: courseId);
         },
@@ -59,8 +59,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
         builder: (context, state) {
           final videoId = state.pathParameters['videoId'] ?? '';
-
-          return LessonPlayer(videoId: videoId);
+          final title = state.extra as String?;
+          return LessonPlayer(videoId: videoId, title: title ?? '');
         },
       ),
       GoRoute(
