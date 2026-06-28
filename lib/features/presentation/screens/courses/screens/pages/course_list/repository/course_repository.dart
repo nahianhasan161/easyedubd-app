@@ -22,7 +22,7 @@ class CourseRepository {
 
         name: 'Supabase Response',
       );
-      print(const JsonEncoder.withIndent('  ').convert(response));
+      /* print(const JsonEncoder.withIndent('  ').convert(response)); */
       // The response is already a List<dynamic> from the Supabase SDK
       return (response as List<dynamic>)
           .map((json) => Course.fromJson(json as Map<String, dynamic>))
