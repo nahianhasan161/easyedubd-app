@@ -93,7 +93,7 @@ class _LessonPlayerState extends State<LessonPlayer> {
       builder: (context, player) {
         return Scaffold(
           appBar: AppBar(
-            title: Text("${widget.title}"),
+            title: Text(widget.title),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () {
