@@ -25,17 +25,17 @@ jobs:
         with:
           flutter-version: "3.44.2"
 
-      - run: flutter pub get
+     
       - name: Set Version Code
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
           VERSION_NAME=${VERSION%%+*}
-          VERSION_CODE=${{ github.run_number }}
+          VERSION_CODE=${{ github.run_id }}
 
           sed -i "s/^version:.*/version: ${VERSION_NAME}+${VERSION_CODE}/" pubspec.yaml
 
           echo "New version: ${VERSION_NAME}+${VERSION_CODE}"
-
+      - run: flutter pub get
       - name: Decode Keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/upload-keystore.jks
