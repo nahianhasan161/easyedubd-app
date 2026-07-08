@@ -53,9 +53,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         data: (status) {
           switch (status) {
             case AppStartupState.authenticated:
-              return state.matchedLocation == '/dashboard'
-                  ? null
-                  : '/dashboard';
+              final publicRoutes = {'/', '/splash'};
+
+              if (publicRoutes.contains(state.matchedLocation)) {
+                return '/dashboard';
+              }
+
+              return null;
 
             case AppStartupState.pendingDevice:
               return state.matchedLocation == '/device-pending'
