@@ -10,12 +10,28 @@ class CourseRepository {
 
   Future<List<Course>> getCourses() async {
     try {
-      final response = await _supabase.from('course').select('''
+      final response = await _supabase
+          .from('course')
+          .select('''
       *,
       chapter (
         *,
         lesson (*))
-    ''');
+    ''')
+          .order('position', ascending: true)
+          .order('created_at', ascending: true)
+          .order('position', referencedTable: 'chapter', ascending: true)
+          .order('created_at', referencedTable: 'chapter', ascending: true)
+          .order(
+            'position  ',
+            referencedTable: 'chapter.lesson',
+            ascending: true,
+          )
+          .order(
+            'created_at',
+            referencedTable: 'chapter.lesson',
+            ascending: true,
+          );
 
       developer.log(
         const JsonEncoder.withIndent('  ').convert(response),

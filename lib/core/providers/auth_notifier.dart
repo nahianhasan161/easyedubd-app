@@ -1,8 +1,10 @@
+import 'package:easyedubd_app/core/device/device_provider.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:flutter/foundation.dart';
 import 'supabase_provider.dart';
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, Session?>(
@@ -22,13 +24,33 @@ class AuthController extends AsyncNotifier<Session?> {
     state = const AsyncLoading();
 
     try {
+      final installationId = await ref
+          .read(deviceServiceProvider)
+          .getInstallationId();
+      debugPrint("Installation ID: $installationId");
       final response = await supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
+      final deviceInfo = await ref.read(deviceServiceProvider).getDeviceInfo();
+
+    
+
+      final verification = await ref
+          .read(deviceRepositoryProvider)
+          .verifyCurrentDevice(deviceInfo);
+
+      print("Device status: ${verification.status}");
+      print(verification.status);
 
       state = AsyncData(response.session);
     } catch (e, st) {
+      debugPrint("========== LOGIN ERROR ==========");
+
+      debugPrint(e.toString());
+
+      debugPrintStack(stackTrace: st);
+
       state = AsyncError(e, st);
     }
   }
@@ -60,6 +82,11 @@ class AuthController extends AsyncNotifier<Session?> {
         provider: OAuthProvider.google,
         idToken: idToken,
       );
+      final installationId = await ref
+          .read(deviceServiceProvider)
+          .getInstallationId();
+
+      debugPrint("Installation ID: $installationId");
 
       state = AsyncData(response.session);
     } catch (e, st) {

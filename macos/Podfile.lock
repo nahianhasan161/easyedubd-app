@@ -4,13 +4,10 @@ PODS:
     - OrderedSet (~> 6.0.3)
   - FlutterMacOS (1.0.0)
   - OrderedSet (6.0.3)
-  - ua_client_hints (1.7.0):
-    - FlutterMacOS
 
 DEPENDENCIES:
   - flutter_inappwebview_macos (from `Flutter/ephemeral/.symlinks/plugins/flutter_inappwebview_macos/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - ua_client_hints (from `Flutter/ephemeral/.symlinks/plugins/ua_client_hints/macos`)
 
 SPEC REPOS:
   trunk:
@@ -21,14 +18,11 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/flutter_inappwebview_macos/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  ua_client_hints:
-    :path: Flutter/ephemeral/.symlinks/plugins/ua_client_hints/macos
 
 SPEC CHECKSUMS:
   flutter_inappwebview_macos: c2d68649f9f8f1831bfcd98d73fd6256366d9d1d
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
-  ua_client_hints: bb84da85d9d5d605d40598b3c1ae3bfd2598e201
 
 PODFILE CHECKSUM: bac2186806ea901d391c664c7bfc8ccce0ee7cb7
 

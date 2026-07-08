@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:easyedubd_app/core/startup/startup_provider.dart';
 import 'package:easyedubd_app/core/providers/auth_notifier.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -93,13 +93,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  ref
+                onPressed: () async {
+                  await ref
                       .read(authControllerProvider.notifier)
                       .signInWithEmail(
                         emailController.text.trim(),
                         passwordController.text.trim(),
                       );
+
+                  await ref.read(startupProvider.notifier).initialize();
                 },
                 child: const Text("Login"),
               ),

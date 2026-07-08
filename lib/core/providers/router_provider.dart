@@ -11,11 +11,14 @@ final authListenable = Provider<Listenable>((ref) {
 
     // Only redirect-relevant events should trigger a router refresh.
     // tokenRefreshed, userUpdated, etc. should NOT cause a rebuild.
-    if (event == AuthChangeEvent.signedIn ||
+    if (event == AuthChangeEvent.signedOut) {
+      controller.notifyListeners();
+    }
+    /* if (event == AuthChangeEvent.signedIn ||
         event == AuthChangeEvent.signedOut ||
         event == AuthChangeEvent.initialSession) {
       controller.notifyListeners();
-    }
+    } */
   });
 
   return controller;

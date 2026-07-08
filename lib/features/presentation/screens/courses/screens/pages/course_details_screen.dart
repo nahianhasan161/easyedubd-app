@@ -82,11 +82,8 @@ class CourseDetailsScreen extends ConsumerWidget {
                       automaticallyImplyLeading: false,
                       pinned: true,
 
-                      
-
                       flexibleSpace: FlexibleSpaceBar(
-                        title: Text(course.title),
-
+                        /*  title: Text(course.title), */
                         background: AppCachedImage(
                           url: course.imageUrl,
 
@@ -109,43 +106,122 @@ class CourseDetailsScreen extends ConsumerWidget {
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final chapter = course.chapters[index];
 
-                        return ExpansionTile(
-                          title: Text(chapter.title),
-                          subtitle: Text(chapter.description),
+                        final totalMinutes = chapter.lessons.fold<int>(
+                          0,
+                          (sum, lesson) => sum + lesson.duration.inMinutes,
+                        );
 
-                          children: chapter.lessons.map((lesson) {
-                            final canWatch = accessService.canWatchLesson(
-                              isFree: course.is_free,
-                              hasCourseEnrollment: hasCourseEnrollment,
-                              hasBundleEnrollment: false,
-                            );
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Card(
+                            elevation: 2,
+                            shadowColor: Colors.black12,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: ExpansionTile(
+                                tilePadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                childrenPadding: const EdgeInsets.only(
+                                  left: 12,
+                                  right: 12,
+                                  bottom: 12,
+                                ),
+                                leading: CircleAvatar(
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
+                                  child: Text(
+                                    "${index + 1}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  chapter.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  "${chapter.lessons.length} Lessons • $totalMinutes mins",
+                                ),
+                                children: chapter.lessons.map((lesson) {
+                                  final canWatch = accessService.canWatchLesson(
+                                    isFree: course.is_free,
+                                    hasCourseEnrollment: hasCourseEnrollment,
+                                    hasBundleEnrollment: false,
+                                  );
 
-                            return ListTile(
-                              leading: Icon(
-                                canWatch ? Icons.lock_open : Icons.lock,
-                                color: canWatch ? Colors.green : Colors.red,
-                              ),
-                              title: Text(lesson.title),
-                              subtitle: Text(
-                                "${lesson.duration.inMinutes} min",
-                              ),
-                              trailing: Icon(
-                                canWatch ? Icons.play_circle_fill : Icons.lock,
-                                size: 14,
-                              ),
-                              onTap: () {
-                                if (!canWatch) {
-                                  _showLockedDialog(context);
-                                  return;
-                                }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Material(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: ListTile(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                        ),
+                                        leading: CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: canWatch
+                                              ? Colors.green.shade100
+                                              : Colors.red.shade100,
+                                          child: Icon(
+                                            canWatch
+                                                ? Icons.play_arrow_rounded
+                                                : Icons.lock_rounded,
+                                            color: canWatch
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          lesson.title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          "${lesson.duration.inMinutes} min",
+                                        ),
+                                        trailing: Icon(
+                                          canWatch
+                                              ? Icons.arrow_forward_ios_rounded
+                                              : Icons.lock_outline_rounded,
+                                          size: 18,
+                                          color: Colors.grey,
+                                        ),
+                                        onTap: () {
+                                          if (!canWatch) {
+                                            _showLockedDialog(context);
+                                            return;
+                                          }
 
-                                context.push(
-                                  '/lesson/${lesson.videoId}',
-                                  extra: lesson.title,
-                                );
-                              },
-                            );
-                          }).toList(),
+                                          context.push(
+                                            '/lesson/${lesson.videoId}',
+                                            extra: lesson.title,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
                         );
                       }, childCount: course.chapters.length),
                     ),
