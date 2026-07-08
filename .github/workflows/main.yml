@@ -25,16 +25,6 @@ jobs:
         with:
           flutter-version: "3.44.2"
 
-     
-      - name: Set Version Code
-        run: |
-          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          VERSION_NAME=${VERSION%%+*}
-          VERSION_CODE=${{ github.run_id }}
-
-          sed -i "s/^version:.*/version: ${VERSION_NAME}+${VERSION_CODE}/" pubspec.yaml
-
-          echo "New version: ${VERSION_NAME}+${VERSION_CODE}"
       - run: flutter pub get
       - name: Decode Keystore
         run: |
@@ -75,4 +65,4 @@ jobs:
           serviceAccountJson: play-account.json
           packageName: com.easyeducationbd.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: internal
+          tracks: internal
