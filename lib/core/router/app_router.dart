@@ -12,12 +12,14 @@ import 'package:easyedubd_app/features/presentation/screens/login/login_screen.d
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
 
 import 'package:easyedubd_app/shared/widgets/youtube_player.dart';
+import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  debugPrint("🔥 NEW GOROUTER CREATED");
   // 1. Watch the listenable so the router reacts to changes
   final listenable = ref.watch(authListenable);
 
@@ -28,6 +30,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: listenable, // <---
     redirect: (context, state) {
+      debugPrint(
+        'REDIRECT: location=${state.matchedLocation}, '
+        'startup=${startupState.value}',
+      );
       final session = supabase.auth.currentSession;
 
       // Not logged in
@@ -41,12 +47,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       /*  final startup = ref.read(startupProvider); */
 
       return startupState.when(
-        loading: () {
-          if (state.matchedLocation != '/splash') {
-            return '/splash';
-          }
-          return null;
-        },
+        loading: () => null,
 
         error: (_, __) => '/',
 

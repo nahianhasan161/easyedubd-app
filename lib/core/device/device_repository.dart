@@ -20,7 +20,7 @@ class DeviceRepository {
 
   Future<DeviceVerificationResult> verifyCurrentDevice(
     DeviceInfoModel device,
-  ) async {
+) async {
     final response = await supabase.rpc(
       'verify_device',
       params: {

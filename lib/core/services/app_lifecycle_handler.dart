@@ -31,10 +31,11 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
+    debugPrint("LIFECYCLE: $state");
     if (state != AppLifecycleState.resumed) return;
-
-    final result = await ref.read(startupProvider.notifier).initialize();
-
+    debugPrint("RESUMED");
+    final result = await ref.read(startupProvider.notifier).recheckOnResume();
+    debugPrint("INITIALIZE RESULT: $result");
     if (!mounted) return;
     final router = ref.read(appRouterProvider);
     switch (result) {
@@ -43,7 +44,9 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
         break;
 
       case AppStartupState.pendingDevice:
-        router.go('/device-pending');
+        if (router.state.uri.path != '/device-pending') {
+          router.go('/device-pending');
+        }
 
         break;
 

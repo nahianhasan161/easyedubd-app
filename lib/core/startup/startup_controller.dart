@@ -1,5 +1,6 @@
 import 'package:easyedubd_app/core/device/device_provider.dart';
 import 'package:easyedubd_app/core/device/device_repository.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -23,44 +24,35 @@ class StartupController extends AsyncNotifier<AppStartupState> {
   }
 
   Future<AppStartupState> initialize() async {
-    try {
-      state = const AsyncLoading();
+  state = const AsyncLoading();
 
-      final session = supabase.auth.currentSession;
+  try {
+    final result = await _performStartupCheck();
 
-      // User not logged in
-      if (session == null) {
-        state = const AsyncData(AppStartupState.unauthenticated);
-        return AppStartupState.unauthenticated;
-      }
+    state = AsyncData(result);
 
-      // Get current device information
-      final deviceService = ref.read(deviceServiceProvider);
-      final deviceInfo = await deviceService.getDeviceInfo();
-      print(deviceInfo.toJson()); // 👈
-      // Verify device with Supabase
-      final deviceRepository = ref.read(deviceRepositoryProvider);
-      final result = await deviceRepository.verifyCurrentDevice(deviceInfo);
-
-      switch (result.status) {
-        case DeviceVerificationStatus.approved:
-          state = const AsyncData(AppStartupState.authenticated);
-          return AppStartupState.authenticated;
-
-        case DeviceVerificationStatus.pending:
-          state = const AsyncData(AppStartupState.pendingDevice);
-          return AppStartupState.pendingDevice;
-
-        case DeviceVerificationStatus.revoked:
-          state = const AsyncData(AppStartupState.blockedDevice);
-          return AppStartupState.blockedDevice;
-      }
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      return AppStartupState.unauthenticated;
-    }
+    return result;
+  } catch (e, st) {
+    state = AsyncError(e, st);
+    return AppStartupState.unauthenticated;
   }
+}
+Future<AppStartupState> recheckOnResume() async {
+  try {
+    // IMPORTANT: Do NOT set AsyncLoading() here.
+    final result = await _performStartupCheck();
 
+    // Only notify if the state actually changed.
+    if (state.value != result) {
+      state = AsyncData(result);
+    }
+
+    return result;
+  } catch (e, st) {
+    state = AsyncError(e, st);
+    return AppStartupState.unauthenticated;
+  }
+}
   Future<void> refresh() async {
     await initialize();
   }
@@ -68,4 +60,29 @@ class StartupController extends AsyncNotifier<AppStartupState> {
   void setState(AppStartupState value) {
     state = AsyncData(value);
   }
+
+  Future<AppStartupState> _performStartupCheck() async {
+  final session = supabase.auth.currentSession;
+
+  if (session == null) {
+    return AppStartupState.unauthenticated;
+  }
+
+  final deviceService = ref.read(deviceServiceProvider);
+  final deviceInfo = await deviceService.getDeviceInfo();
+
+  final deviceRepository = ref.read(deviceRepositoryProvider);
+  final result = await deviceRepository.verifyCurrentDevice(deviceInfo);
+
+  switch (result.status) {
+    case DeviceVerificationStatus.approved:
+      return AppStartupState.authenticated;
+
+    case DeviceVerificationStatus.pending:
+      return AppStartupState.pendingDevice;
+
+    case DeviceVerificationStatus.revoked:
+      return AppStartupState.blockedDevice;
+  }
+}
 }

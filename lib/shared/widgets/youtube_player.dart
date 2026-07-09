@@ -21,7 +21,7 @@ class _YoutubePlayerScreenState extends State<YoutubePlayerScreen> {
 
     _controller = YoutubePlayerController(
       initialVideoId: videoId,
-      flags: const YoutubePlayerFlags(autoPlay: false, mute: false),
+      flags: const YoutubePlayerFlags(autoPlay: true, mute: false),
     );
   }
 
@@ -37,6 +37,10 @@ class _YoutubePlayerScreenState extends State<YoutubePlayerScreen> {
       player: YoutubePlayer(
         controller: _controller,
         showVideoProgressIndicator: true,
+        onReady: () {
+          _controller.play();
+          debugPrint("Player is ready.");
+        },
       ),
       builder: (context, player) {
         return Scaffold(

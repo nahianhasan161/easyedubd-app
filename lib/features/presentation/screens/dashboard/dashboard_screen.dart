@@ -15,13 +15,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
 
   late final List<Widget> _pages = [
-    const CourseListScreen(
-      key: ValueKey('all_courses'),
-    ),
-    const CourseListScreen(
-      key: ValueKey('my_courses'),
-      enrolledOnly: true,
-    ),
+    const CourseListScreen(key: ValueKey('all_courses')),
+    const CourseListScreen(key: ValueKey('my_courses'), enrolledOnly: true),
   ];
 
   @override
@@ -30,9 +25,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _currentIndex == 0 ? 'All Courses' : 'My Courses',
-        ),
+        title: Text(_currentIndex == 0 ? 'All Courses' : 'My Courses'),
         actions: [
           ElevatedButton.icon(
             onPressed: () {
@@ -44,10 +37,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
 
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
 
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,

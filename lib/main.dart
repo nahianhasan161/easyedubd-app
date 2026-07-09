@@ -27,6 +27,7 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint("🔥 MyApp build");
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
