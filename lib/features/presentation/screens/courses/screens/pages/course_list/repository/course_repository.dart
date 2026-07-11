@@ -8,16 +8,38 @@ class CourseRepository {
 
   CourseRepository(this._supabase);
 
-  Future<List<Course>> getCourses() async {
+  Future<List<Course>> getCourses({
+    int limit = 10,
+    int offset = 0,
+    String? year,
+    String? subject,
+    String? type,
+  }) async {
     try {
-      final response = await _supabase
-          .from('course')
-          .select('''
+      var query = _supabase.from('course').select('''
       *,
       chapter (
         *,
         lesson (*))
-    ''')
+    ''');
+
+      if (year != null && year != 'All') {
+        query = query.eq('year', year);
+      }
+
+      if (subject != null && subject != 'All') {
+        query = query.eq('subject', subject.toLowerCase());
+      }
+
+      if (type != null && type != 'All') {
+        if (type == 'Free') {
+          query = query.eq('is_free', true);
+        } else if (type == 'Paid') {
+          query = query.eq('is_free', false);
+        }
+      }
+
+      final response = await query
           .order('position', ascending: true)
           .order('created_at', ascending: true)
           .order('position', referencedTable: 'chapter', ascending: true)
@@ -31,7 +53,8 @@ class CourseRepository {
             'created_at',
             referencedTable: 'chapter.lesson',
             ascending: true,
-          );
+          )
+          .range(offset, offset + limit - 1);
 
       developer.log(
         const JsonEncoder.withIndent('  ').convert(response),

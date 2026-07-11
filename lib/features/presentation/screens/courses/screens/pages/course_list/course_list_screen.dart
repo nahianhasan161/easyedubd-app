@@ -1,160 +1,141 @@
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
-import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/repository/course_repository.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/widgets/course_card.dart';
 
 class CourseListScreen extends ConsumerStatefulWidget {
   final bool enrolledOnly;
+  final bool showAppBar;
 
-  const CourseListScreen({super.key, this.enrolledOnly = false});
+  const CourseListScreen({
+    super.key,
+    this.enrolledOnly = false,
+    this.showAppBar = true,
+  });
 
   @override
   ConsumerState<CourseListScreen> createState() => _CourseListScreenState();
 }
 
 class _CourseListScreenState extends ConsumerState<CourseListScreen> {
-  final CourseRepository _repository = CourseRepository(
-    Supabase.instance.client,
-  );
+  final ScrollController _scrollController = ScrollController();
 
-  late Future<List<Course>> _coursesFuture;
-
-  DateTime? _lastRefreshTime;
-  static const Duration _refreshCooldown = Duration(seconds: 5);
-
-  String selectedYear = 'All';
-  String selectedSubject = 'All';
-  String selectedType = 'All';
-  String selectedEnrollment = 'All';
+  late String selectedYear;
+  late String selectedSubject;
+  late String selectedType;
+  bool _filtersExpanded = true;
 
   @override
   void initState() {
     super.initState();
 
-    if (widget.enrolledOnly) {
-      selectedEnrollment = 'Enrolled';
-    }
+    selectedYear = 'All';
+    selectedSubject = 'All';
+    selectedType = 'All';
 
-    _loadCourses();
-  }
+    _scrollController.addListener(_onScroll);
 
-  void _loadCourses() {
-    _coursesFuture = _repository.getCourses();
-  }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
 
-  List<Course> _filterCourses(
-    List<Course> courses,
+      final notifier =
+          ref.read(courseListProvider(widget.enrolledOnly).notifier);
 
-    Set<int> enrolledCourseIds,
-  ) {
-    return courses.where((course) {
-      if (course.status == 'draft') return false;
+      ref.read(enrolledCourseIdsProvider).whenData(
+        (ids) => notifier.setEnrolledCourseIds(ids),
+      );
 
-      final yearMatch = selectedYear == 'All' || course.year == selectedYear;
-
-      final subjectMatch =
-          selectedSubject == 'All' ||
-          course.subject.toLowerCase() == selectedSubject.toLowerCase();
-
-      final typeMatch =
-          selectedType == 'All' ||
-          (selectedType == 'Free' && course.is_free) ||
-          (selectedType == 'Paid' && !course.is_free);
-
-      final enrolled = enrolledCourseIds.contains(course.id);
-
-      if (widget.enrolledOnly && !enrolled) {
-        return false;
+      if (!widget.enrolledOnly) {
+        notifier.loadInitial();
       }
-
-      return yearMatch && subjectMatch && typeMatch;
-    }).toList();
+    });
   }
 
-  Widget _buildFilters() {
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(courseListProvider(widget.enrolledOnly).notifier).loadMore();
+    }
+  }
+
+  Widget _buildChipRow({
+    required String label,
+    required List<String> options,
+    required String selected,
+    required void Function(String) onSelected,
+    bool showCheckmark = false,
+  }) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: (MediaQuery.of(context).size.width - 40) / 3,
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: selectedYear,
-              decoration: const InputDecoration(
-                labelText: 'Year',
-                border: OutlineInputBorder(),
-                isDense: true,
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              label.toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                letterSpacing: 1.0,
+                fontWeight: FontWeight.w700,
+                color: primary.withValues(alpha: 0.75),
               ),
-              items: const [
-                DropdownMenuItem(value: 'All', child: Text('All')),
-                DropdownMenuItem(value: '1st', child: Text('1st')),
-                DropdownMenuItem(value: '2nd', child: Text('2nd')),
-                DropdownMenuItem(value: '3rd', child: Text('3rd')),
-                DropdownMenuItem(value: '4th', child: Text('4th')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  selectedYear = value!;
-                });
-              },
             ),
           ),
-
-          const SizedBox(width: 8),
-
-          SizedBox(
-            width: (MediaQuery.of(context).size.width - 40) / 3,
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: selectedSubject,
-              decoration: const InputDecoration(
-                labelText: 'Subject',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: const [
-                DropdownMenuItem(value: 'All', child: Text('All')),
-                DropdownMenuItem(value: 'Math', child: Text('Math')),
-                DropdownMenuItem(value: 'Physics', child: Text('Physics')),
-                DropdownMenuItem(value: 'Chemistry', child: Text('Chemistry')),
-                DropdownMenuItem(value: 'Biology', child: Text('Biology')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  selectedSubject = value!;
-                });
-              },
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          SizedBox(
-            width: (MediaQuery.of(context).size.width - 40) / 3,
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: selectedType,
-              decoration: const InputDecoration(
-                labelText: 'Type',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: const [
-                DropdownMenuItem(value: 'All', child: Text('All')),
-                DropdownMenuItem(value: 'Free', child: Text('Free')),
-                DropdownMenuItem(value: 'Paid', child: Text('Paid')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  selectedType = value!;
-                });
-              },
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Row(
+              children: options.map((option) {
+                final isActive = selected == option;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(option),
+                    selected: isActive,
+                    showCheckmark: showCheckmark && option != 'All',
+                    onSelected: (_) => onSelected(option),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    elevation: isActive ? 2 : 0,
+                    pressElevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    selectedColor: primary,
+                    checkmarkColor: theme.colorScheme.onPrimary,
+                    backgroundColor: theme.colorScheme.surface,
+                    side: BorderSide(
+                      color: isActive ? primary : Colors.grey.shade300,
+                    ),
+                    labelStyle: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          isActive ? FontWeight.w600 : FontWeight.w500,
+                      color: isActive
+                          ? theme.colorScheme.onPrimary
+                          : Colors.grey.shade700,
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -162,100 +143,267 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
     );
   }
 
-  Future<void> _refreshCourses() async {
-    final now = DateTime.now();
+  Widget _buildFilters() {
+    final theme = Theme.of(context);
 
-    if (_lastRefreshTime != null &&
-        now.difference(_lastRefreshTime!) < _refreshCooldown) {
-      final remaining =
-          _refreshCooldown.inSeconds -
-          now.difference(_lastRefreshTime!).inSeconds;
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Please wait $remaining second${remaining == 1 ? '' : 's'} before refreshing again.',
-            ),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-        );
-      }
-      return;
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildChipRow(
+            label: 'Year',
+            options: const ['All', '1st', '2nd', '3rd', '4th'],
+            selected: selectedYear,
+            onSelected: (value) {
+              setState(() => selectedYear = value);
+              ref
+                  .read(courseListProvider(widget.enrolledOnly).notifier)
+                  .updateFilters(year: value);
+            },
+          ),
+          const Divider(height: 4, thickness: 1),
+          _buildChipRow(
+            label: 'Subject',
+            options: const [
+              'All',
+              'Math',
+              'Physics',
+              'Chemistry',
+              'Biology',
+            ],
+            selected: selectedSubject,
+            onSelected: (value) {
+              setState(() => selectedSubject = value);
+              ref
+                  .read(courseListProvider(widget.enrolledOnly).notifier)
+                  .updateFilters(subject: value);
+            },
+          ),
+          const Divider(height: 4, thickness: 1),
+          _buildChipRow(
+            label: 'Type',
+            options: const ['All', 'Free', 'Paid'],
+            selected: selectedType,
+            showCheckmark: true,
+            onSelected: (value) {
+              setState(() => selectedType = value);
+              ref
+                  .read(courseListProvider(widget.enrolledOnly).notifier)
+                  .updateFilters(type: value);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _activeChip(String label, String value, VoidCallback onRemove) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: Chip(
+        label: Text(
+          '$label: $value',
+          style: const TextStyle(fontSize: 12),
+        ),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        onDeleted: onRemove,
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        backgroundColor: primary.withValues(alpha: 0.12),
+        labelStyle: TextStyle(
+          color: primary,
+          fontWeight: FontWeight.w600,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterHeader() {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    final chips = <Widget>[];
+    if (selectedYear != 'All') {
+      chips.add(_activeChip('Year', selectedYear, () => _clearFilter('year')));
+    }
+    if (selectedSubject != 'All') {
+      chips.add(
+        _activeChip('Subject', selectedSubject, () => _clearFilter('subject')),
+      );
+    }
+    if (selectedType != 'All') {
+      chips.add(_activeChip('Type', selectedType, () => _clearFilter('type')));
     }
 
-    _lastRefreshTime = now;
+    return GestureDetector(
+      onTap: () => setState(() => _filtersExpanded = !_filtersExpanded),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Row(
+              children: [
+                Icon(Icons.filter_list, size: 20, color: primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Filters',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  _filtersExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.grey.shade600,
+                ),
+              ],
+            ),
+            if (chips.isNotEmpty) ...[
+              const SizedBox(width: 10),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: chips),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
+  void _clearFilter(String dimension) {
     setState(() {
-      _loadCourses();
+      if (dimension == 'year') {
+        selectedYear = 'All';
+      } else if (dimension == 'subject') {
+        selectedSubject = 'All';
+      } else if (dimension == 'type') {
+        selectedType = 'All';
+      }
     });
 
-    await _coursesFuture;
+    ref.read(courseListProvider(widget.enrolledOnly).notifier).updateFilters(
+      year: dimension == 'year' ? 'All' : null,
+      subject: dimension == 'subject' ? 'All' : null,
+      type: dimension == 'type' ? 'All' : null,
+    );
+  }
+
+  Future<void> _refreshCourses() async {
+    await ref
+        .read(courseListProvider(widget.enrolledOnly).notifier)
+        .loadInitial();
   }
 
   @override
   Widget build(BuildContext context) {
-    final enrolledAsync = ref.watch(enrolledCourseIdsProvider);
+    final courseList = ref.watch(courseListProvider(widget.enrolledOnly));
+
+    ref.listen(enrolledCourseIdsProvider, (previous, next) {
+      next.whenData(
+        (ids) => ref
+            .read(courseListProvider(widget.enrolledOnly).notifier)
+            .setEnrolledCourseIds(ids),
+      );
+    });
+
+    final body = courseList.isInitialLoading
+        ? const Center(child: CircularProgressIndicator())
+        : courseList.error != null
+            ? Center(child: Text('Error: ${courseList.error}'))
+            : courseList.courses.isEmpty
+                ? const Center(child: Text('No courses found.'))
+                : RefreshIndicator(
+                    onRefresh: _refreshCourses,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount:
+                          courseList.courses.length +
+                          (courseList.isLoadingMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == courseList.courses.length) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        final course = courseList.courses[index];
+                        final isEnrolled = widget.enrolledOnly ||
+                            courseList.enrolledCourseIds?.contains(course.id) ==
+                                true;
+
+                        return CourseCard(
+                          course: course,
+                          isEnrolled: isEnrolled || course.is_free,
+                          onTap: () {
+                            context.push('/course/${course.id}');
+                          },
+                        );
+                      },
+                    ),
+                  );
+
+    final content = Column(
+      children: [
+        if (!widget.enrolledOnly) ...[
+          _buildFilterHeader(),
+          if (_filtersExpanded) _buildFilters(),
+        ],
+        Expanded(child: body),
+      ],
+    );
+
+    if (!widget.showAppBar) {
+      return content;
+    }
 
     return Scaffold(
-      body: FutureBuilder<List<Course>>(
-        future: _coursesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No courses available.'));
-          }
-
-          return enrolledAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-
-            error: (e, _) => Center(child: Text('Error: $e')),
-
-            data: (enrolledCourseIds) {
-              final courses = _filterCourses(snapshot.data!, enrolledCourseIds);
-
-              return RefreshIndicator(
-                onRefresh: _refreshCourses,
-                child: Column(
-                  children: [
-                    if (!widget.enrolledOnly) _buildFilters(),
-                    Expanded(
-                      child: courses.isEmpty
-                          ? const Center(child: Text('No courses found.'))
-                          : ListView.builder(
-                              itemCount: courses.length,
-                              itemBuilder: (context, index) {
-                                final course = courses[index];
-
-                                final isEnrolled = enrolledCourseIds.contains(
-                                  course.id,
-                                );
-
-                                return CourseCard(
-                                  course: course,
-                                  isEnrolled:
-                                      isEnrolled ||
-                                      course.is_free, // ✅ ADD THIS
-                                  onTap: () {
-                                    context.push('/course/${course.id}');
-                                  },
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+      appBar: AppBar(
+        title: Text(
+          widget.enrolledOnly ? 'My Courses' : 'All Courses',
+        ),
+        centerTitle: false,
+        elevation: 0,
       ),
+      body: content,
     );
   }
 }

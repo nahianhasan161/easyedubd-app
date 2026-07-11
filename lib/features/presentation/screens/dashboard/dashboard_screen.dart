@@ -15,8 +15,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
 
   late final List<Widget> _pages = [
-    const CourseListScreen(key: ValueKey('all_courses')),
-    const CourseListScreen(key: ValueKey('my_courses'), enrolledOnly: true),
+    const CourseListScreen(key: ValueKey('all_courses'), showAppBar: false),
+    const CourseListScreen(
+      key: ValueKey('my_courses'),
+      enrolledOnly: true,
+      showAppBar: false,
+    ),
   ];
 
   @override
