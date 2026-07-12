@@ -2,6 +2,7 @@ import 'package:easyedubd_app/core/providers/auth_notifier.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/dashboard/admin_drawer.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
 
   late final List<Widget> _pages = [
@@ -39,39 +41,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         : null;
 
     return GestureDetector(
-      onTap: () => context.push('/profile'),
+      onTap: () => _scaffoldKey.currentState?.openDrawer(),
       child: Padding(
         padding: const EdgeInsets.only(left: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              backgroundImage: imageProvider,
-              child: imageProvider == null
-                  ? Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 120),
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+        child: CircleAvatar(
+          radius: 18,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          backgroundImage: imageProvider,
+          child: imageProvider == null
+              ? Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : null,
         ),
       ),
     );
@@ -83,20 +68,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final profileAsync = ref.watch(currentProfileProvider);
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const AdminDrawer(),
       appBar: AppBar(
-        leadingWidth: 170,
+        centerTitle: true,
         leading: _buildProfileAvatar(profileAsync),
         title: Text(_currentIndex == 0 ? 'All Courses' : 'My Courses'),
         actions: [
-          IconButton.filled(
-            onPressed: () {
-              ref.read(authControllerProvider.notifier).logout();
-            },
-            style: IconButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 180, 99, 93),
-              foregroundColor: Colors.white,
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () =>
+                  ref.read(authControllerProvider.notifier).logout(),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color.fromARGB(255, 180, 99, 93),
+                child: const Icon(
+                  Icons.logout,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
             ),
-            icon: const Icon(Icons.logout),
           ),
         ],
       ),

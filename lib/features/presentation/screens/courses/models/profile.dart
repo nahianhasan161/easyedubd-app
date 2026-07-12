@@ -9,6 +9,8 @@ class Profile {
   final String? department;
   final String? session;
   final String? currentYear;
+  final String? gender;
+  final String? role;
 
   const Profile({
     required this.id,
@@ -21,6 +23,8 @@ class Profile {
     this.department,
     this.session,
     this.currentYear,
+    this.gender,
+    this.role,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -37,6 +41,8 @@ class Profile {
       department: json['department'] as String?,
       session: json['session'] as String?,
       currentYear: json['current_year'] as String?,
+      gender: json['gender'] as String?,
+      role: json['role'] as String?,
     );
   }
 
@@ -52,6 +58,8 @@ class Profile {
       'department': department,
       'session': session,
       'current_year': currentYear,
+      'gender': gender,
+      'role': role,
     };
   }
 
@@ -66,6 +74,8 @@ class Profile {
       'department': department,
       'session': session,
       'current_year': currentYear,
+      'gender': gender,
+      'role': role,
     };
   }
 
@@ -80,6 +90,8 @@ class Profile {
     String? department,
     String? session,
     String? currentYear,
+    String? gender,
+    String? role,
   }) {
     return Profile(
       id: id ?? this.id,
@@ -92,6 +104,8 @@ class Profile {
       department: department ?? this.department,
       session: session ?? this.session,
       currentYear: currentYear ?? this.currentYear,
+      gender: gender ?? this.gender,
+      role: role ?? this.role,
     );
   }
 }

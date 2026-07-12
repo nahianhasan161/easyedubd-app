@@ -41,12 +41,13 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      final notifier =
-          ref.read(courseListProvider(widget.enrolledOnly).notifier);
-
-      ref.read(enrolledCourseIdsProvider).whenData(
-        (ids) => notifier.setEnrolledCourseIds(ids),
+      final notifier = ref.read(
+        courseListProvider(widget.enrolledOnly).notifier,
       );
+
+      ref
+          .read(enrolledCourseIdsProvider)
+          .whenData((ids) => notifier.setEnrolledCourseIds(ids));
 
       if (!widget.enrolledOnly) {
         notifier.loadInitial();
@@ -127,8 +128,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
                     ),
                     labelStyle: TextStyle(
                       fontSize: 13,
-                      fontWeight:
-                          isActive ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                       color: isActive
                           ? theme.colorScheme.onPrimary
                           : Colors.grey.shade700,
@@ -178,13 +178,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
           const Divider(height: 4, thickness: 1),
           _buildChipRow(
             label: 'Subject',
-            options: const [
-              'All',
-              'Math',
-              'Physics',
-              'Chemistry',
-              'Biology',
-            ],
+            options: const ['All', 'Math', 'Physics', 'Chemistry', 'Biology'],
             selected: selectedSubject,
             onSelected: (value) {
               setState(() => selectedSubject = value);
@@ -218,22 +212,14 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: Chip(
-        label: Text(
-          '$label: $value',
-          style: const TextStyle(fontSize: 12),
-        ),
+        label: Text('$label: $value', style: const TextStyle(fontSize: 12)),
         deleteIcon: const Icon(Icons.close, size: 16),
         onDeleted: onRemove,
         visualDensity: VisualDensity.compact,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         backgroundColor: primary.withValues(alpha: 0.12),
-        labelStyle: TextStyle(
-          color: primary,
-          fontWeight: FontWeight.w600,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        labelStyle: TextStyle(color: primary, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -317,11 +303,13 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
       }
     });
 
-    ref.read(courseListProvider(widget.enrolledOnly).notifier).updateFilters(
-      year: dimension == 'year' ? 'All' : null,
-      subject: dimension == 'subject' ? 'All' : null,
-      type: dimension == 'type' ? 'All' : null,
-    );
+    ref
+        .read(courseListProvider(widget.enrolledOnly).notifier)
+        .updateFilters(
+          year: dimension == 'year' ? 'All' : null,
+          subject: dimension == 'subject' ? 'All' : null,
+          type: dimension == 'type' ? 'All' : null,
+        );
   }
 
   Future<void> _refreshCourses() async {
@@ -345,69 +333,64 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
     final body = courseList.isInitialLoading
         ? const Center(child: CircularProgressIndicator())
         : courseList.error != null
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.cloud_off_outlined,
-                      size: 48,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Could not load courses.\nPlease check your connection and try again.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: () => ref
-                          .read(courseListProvider(widget.enrolledOnly)
-                              .notifier)
-                          .loadInitial(),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
-                    ),
-                  ],
+        ? Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.cloud_off_outlined,
+                  size: 48,
+                  color: Colors.grey,
                 ),
-              )
-            : courseList.courses.isEmpty
-                ? const Center(
-                    child: Text('No courses found.'),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _refreshCourses,
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      itemCount:
-                          courseList.courses.length +
-                          (courseList.isLoadingMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == courseList.courses.length) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-
-                        final course = courseList.courses[index];
-                        final isEnrolled = widget.enrolledOnly ||
-                            courseList.enrolledCourseIds?.contains(course.id) ==
-                                true;
-
-                        return CourseCard(
-                          course: course,
-                          isEnrolled: isEnrolled || course.is_free,
-                          onTap: () {
-                            context.push('/course/${course.id}');
-                          },
-                        );
-                      },
-                    ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Could not load courses.\nPlease check your connection and try again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => ref
+                      .read(courseListProvider(widget.enrolledOnly).notifier)
+                      .loadInitial(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          )
+        : courseList.courses.isEmpty
+        ? const Center(child: Text('No courses found.'))
+        : RefreshIndicator(
+            onRefresh: _refreshCourses,
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount:
+                  courseList.courses.length +
+                  (courseList.isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == courseList.courses.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
                   );
+                }
+
+                final course = courseList.courses[index];
+                final isEnrolled =
+                    widget.enrolledOnly ||
+                    courseList.enrolledCourseIds?.contains(course.id) == true;
+
+                return CourseCard(
+                  course: course,
+                  isEnrolled: isEnrolled || course.is_free,
+                  onTap: () {
+                    context.push('/course/${course.id}');
+                  },
+                );
+              },
+            ),
+          );
 
     final content = GestureDetector(
       onTap: () {
@@ -438,9 +421,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.enrolledOnly ? 'My Courses' : 'All Courses',
-        ),
+        title: Text(widget.enrolledOnly ? 'My Courses' : 'All Courses'),
         centerTitle: false,
         elevation: 0,
       ),

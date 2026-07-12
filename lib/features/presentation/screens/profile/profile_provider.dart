@@ -18,6 +18,12 @@ final currentProfileProvider = FutureProvider<Profile?>((ref) async {
   return repository.getProfile(id);
 });
 
+/// True when the signed-in user's profile role is 'admin'.
+final isAdminProvider = Provider<bool>((ref) {
+  final profile = ref.watch(currentProfileProvider);
+  return profile.value?.role?.toLowerCase() == 'admin';
+});
+
 class ProfileController extends AsyncNotifier<Profile?> {
   late final ProfileRepository _repository;
 

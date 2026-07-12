@@ -25,6 +25,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   bool _loaded = false;
   bool _showAvatarPicker = false;
+  String _gender = 'Male';
 
   static const List<String> _demoAvatars = [
     'https://api.dicebear.com/9.x/adventurer/png?seed=Miso',
@@ -57,6 +58,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _sessionController.text = profile.session ?? '';
     _currentYearController.text = profile.currentYear ?? '';
     _avatarUrlController.text = profile.avatarUrl ?? '';
+    _gender = profile.gender ?? 'Male';
   }
 
   Future<void> _save() async {
@@ -75,6 +77,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       session: _sessionController.text.trim(),
       currentYear: _currentYearController.text.trim(),
       avatarUrl: _avatarUrlController.text.trim(),
+      gender: _gender,
     );
 
     await ref.read(profileControllerProvider.notifier).save(profile);
@@ -221,6 +224,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Current Year',
                     options: const ['1', '2', '3', '4'],
                   ),
+                  const SizedBox(height: 12),
+                  _buildGenderSelector(),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -256,6 +261,72 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: valid
           ? null
           : const Icon(Icons.person, size: 48, color: Colors.grey),
+    );
+  }
+
+  Widget _buildGenderSelector() {
+    final primary = Theme.of(context).colorScheme.primary;
+    final options = const [
+      (label: 'Male', icon: Icons.male),
+      (label: 'Female', icon: Icons.female),
+      (label: 'Others', icon: Icons.transgender),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Gender', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (final option in options) ...[
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _gender = option.label),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _gender == option.label
+                            ? primary
+                            : Colors.grey[300]!,
+                        width: _gender == option.label ? 2 : 1,
+                      ),
+                      color: _gender == option.label
+                          ? primary.withValues(alpha: 0.08)
+                          : null,
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          option.icon,
+                          color: _gender == option.label
+                              ? primary
+                              : Colors.grey[600],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          option.label,
+                          style: TextStyle(
+                            color: _gender == option.label
+                                ? primary
+                                : Colors.grey[700],
+                            fontWeight: _gender == option.label
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+          ],
+        ),
+      ],
     );
   }
 

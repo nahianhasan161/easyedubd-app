@@ -9,7 +9,11 @@ import 'package:easyedubd_app/features/presentation/screens/device_status/device
 import 'package:easyedubd_app/features/presentation/screens/device_status/device_pending_screen.dart';
 
 import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_provider.dart';
+import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/user_devices_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/user_management_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
 
 import 'package:easyedubd_app/shared/widgets/youtube_player.dart';
@@ -39,10 +43,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Not logged in
       if (session == null) {
-        if (state.matchedLocation != '/') {
-          return '/';
-        }
-        return null;
+        final onboarding = ref.watch(onboardingCompletedProvider);
+
+        return onboarding.when(
+          loading: () => null,
+          error: (_, __) =>
+              state.matchedLocation != '/' ? '/' : null,
+          data: (done) {
+            if (!done) {
+              return state.matchedLocation == '/onboarding'
+                  ? null
+                  : '/onboarding';
+            }
+            return state.matchedLocation != '/' ? '/' : null;
+          },
+        );
       }
 
       /*  final startup = ref.read(startupProvider); */
@@ -146,6 +161,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/profile',
 
         builder: (context, state) => const ProfileScreen(),
+      ),
+
+      GoRoute(
+        path: '/admin/users',
+
+        builder: (context, state) => const UserManagementScreen(),
+      ),
+
+      GoRoute(
+        path: '/admin/users/:userId/devices',
+
+        builder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          final userName = state.extra as String? ?? 'User';
+
+          return UserDevicesScreen(userId: userId, userName: userName);
+        },
+      ),
+
+      GoRoute(
+        path: '/onboarding',
+
+        builder: (context, state) => const OnboardingScreen(),
       ),
     ],
   );
