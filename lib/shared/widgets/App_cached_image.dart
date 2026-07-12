@@ -12,6 +12,8 @@ class AppCachedImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: url,
       fit: fit,
+      memCacheWidth: 800,
+      fadeInDuration: const Duration(milliseconds: 200),
       placeholder: (context, url) => Container(color: Colors.grey[200]),
       errorWidget: (context, url, error) => const Icon(Icons.broken_image),
     );

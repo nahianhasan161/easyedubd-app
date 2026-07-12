@@ -35,7 +35,7 @@ class Profile {
       institute: json['institute'] as String?,
       faculty: json['faculty'] as String?,
       department: json['department'] as String?,
-      session: json['sesson'] as String?, // Matches your DB column name
+      session: json['session'] as String?,
       currentYear: json['current_year'] as String?,
     );
   }
@@ -50,7 +50,21 @@ class Profile {
       'institute': institute,
       'faculty': faculty,
       'department': department,
-      'sesson': session, // Matches your DB column name
+      'session': session,
+      'current_year': currentYear,
+    };
+  }
+
+  Map<String, dynamic> toUpsertJson() {
+    return {
+      'id': id,
+      'full_name': fullName,
+      'avatar_url': avatarUrl,
+      'current_level': currentLevel,
+      'institute': institute,
+      'faculty': faculty,
+      'department': department,
+      'session': session,
       'current_year': currentYear,
     };
   }

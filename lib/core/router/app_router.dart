@@ -9,6 +9,7 @@ import 'package:easyedubd_app/features/presentation/screens/device_status/device
 import 'package:easyedubd_app/features/presentation/screens/device_status/device_pending_screen.dart';
 
 import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/profile/profile_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
 
 import 'package:easyedubd_app/shared/widgets/youtube_player.dart';
@@ -139,6 +140,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/youtubeplayer',
 
         builder: (context, state) => const YoutubePlayerScreen(),
+      ),
+
+      GoRoute(
+        path: '/profile',
+
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
   );

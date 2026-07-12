@@ -1,7 +1,6 @@
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer; // Required for the log() function
-import 'dart:convert';
 
 class CourseRepository {
   final SupabaseClient _supabase;
@@ -14,14 +13,12 @@ class CourseRepository {
     String? year,
     String? subject,
     String? type,
+    bool includeChapters = true,
   }) async {
     try {
-      var query = _supabase.from('course').select('''
-      *,
-      chapter (
-        *,
-        lesson (*))
-    ''');
+      var query = _supabase.from('course').select(
+        includeChapters ? '*, chapter ( *, lesson (*))' : '*',
+      );
 
       if (year != null && year != 'All') {
         query = query.eq('year', year);
@@ -39,28 +36,28 @@ class CourseRepository {
         }
       }
 
-      final response = await query
+      var ordered = query
           .order('position', ascending: true)
-          .order('created_at', ascending: true)
-          .order('position', referencedTable: 'chapter', ascending: true)
-          .order('created_at', referencedTable: 'chapter', ascending: true)
-          .order(
-            'position  ',
-            referencedTable: 'chapter.lesson',
-            ascending: true,
-          )
-          .order(
-            'created_at',
-            referencedTable: 'chapter.lesson',
-            ascending: true,
-          )
-          .range(offset, offset + limit - 1);
+          .order('created_at', ascending: true);
 
-      developer.log(
-        const JsonEncoder.withIndent('  ').convert(response),
+      if (includeChapters) {
+        ordered = ordered
+            .order('position', referencedTable: 'chapter', ascending: true)
+            .order('created_at', referencedTable: 'chapter', ascending: true)
+            .order(
+              'position',
+              referencedTable: 'chapter.lesson',
+              ascending: true,
+            )
+            .order(
+              'created_at',
+              referencedTable: 'chapter.lesson',
+              ascending: true,
+            );
+      }
 
-        name: 'Supabase Response',
-      );
+      final response = await ordered.range(offset, offset + limit - 1);
+
       /* print(const JsonEncoder.withIndent('  ').convert(response)); */
       // The response is already a List<dynamic> from the Supabase SDK
       return (response as List<dynamic>)

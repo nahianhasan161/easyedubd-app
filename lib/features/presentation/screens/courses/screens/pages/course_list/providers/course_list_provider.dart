@@ -105,6 +105,7 @@ class CourseListNotifier extends Notifier<CourseListState> {
         year: state.year,
         subject: state.subject,
         type: state.type,
+        includeChapters: false,
       );
 
       List<Course> filtered = fetched;

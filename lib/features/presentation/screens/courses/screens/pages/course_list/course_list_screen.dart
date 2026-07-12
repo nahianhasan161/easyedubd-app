@@ -26,7 +26,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
   late String selectedYear;
   late String selectedSubject;
   late String selectedType;
-  bool _filtersExpanded = true;
+  bool _filtersExpanded = false;
 
   @override
   void initState() {
@@ -345,9 +345,37 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
     final body = courseList.isInitialLoading
         ? const Center(child: CircularProgressIndicator())
         : courseList.error != null
-            ? Center(child: Text('Error: ${courseList.error}'))
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_off_outlined,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Could not load courses.\nPlease check your connection and try again.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () => ref
+                          .read(courseListProvider(widget.enrolledOnly)
+                              .notifier)
+                          .loadInitial(),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
             : courseList.courses.isEmpty
-                ? const Center(child: Text('No courses found.'))
+                ? const Center(
+                    child: Text('No courses found.'),
+                  )
                 : RefreshIndicator(
                     onRefresh: _refreshCourses,
                     child: ListView.builder(
@@ -381,14 +409,27 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
                     ),
                   );
 
-    final content = Column(
-      children: [
-        if (!widget.enrolledOnly) ...[
-          _buildFilterHeader(),
-          if (_filtersExpanded) _buildFilters(),
+    final content = GestureDetector(
+      onTap: () {
+        if (_filtersExpanded) setState(() => _filtersExpanded = false);
+      },
+      child: Column(
+        children: [
+          if (!widget.enrolledOnly) ...[
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+              child: Column(
+                children: [
+                  _buildFilterHeader(),
+                  if (_filtersExpanded) _buildFilters(),
+                ],
+              ),
+            ),
+          ],
+          Expanded(child: body),
         ],
-        Expanded(child: body),
-      ],
+      ),
     );
 
     if (!widget.showAppBar) {

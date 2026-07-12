@@ -1,7 +1,6 @@
 import 'package:easyedubd_app/core/router/app_router.dart';
 import 'package:easyedubd_app/core/services/app_lifecycle_handler.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,7 +9,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
-  await DefaultCacheManager().emptyCache();
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
@@ -27,7 +25,6 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    debugPrint("🔥 MyApp build");
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(

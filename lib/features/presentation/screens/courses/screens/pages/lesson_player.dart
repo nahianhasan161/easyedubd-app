@@ -32,9 +32,12 @@ class _LessonPlayerState extends State<LessonPlayer> {
   void initState() {
     super.initState();
 
+    final videoId =
+        YoutubePlayer.convertUrlToId(widget.videoId) ?? widget.videoId;
+
     _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
-      flags: const YoutubePlayerFlags(autoPlay: false, mute: false),
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(autoPlay: true, mute: false),
     );
   }
 
@@ -87,6 +90,7 @@ class _LessonPlayerState extends State<LessonPlayer> {
         showVideoProgressIndicator: true,
         progressIndicatorColor: Colors.red,
         onReady: () {
+          _controller.play();
           setState(() => _isPlayerReady = true);
         },
       ),
