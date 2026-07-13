@@ -16,6 +16,7 @@ import 'package:easyedubd_app/features/presentation/screens/profile/profile_prov
 import 'package:easyedubd_app/features/presentation/screens/admin/user_devices_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_management_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/settings/security_test_screen.dart';
 
 import 'package:easyedubd_app/shared/widgets/youtube_player.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         'REDIRECT: location=${state.matchedLocation}, '
         'startup=${startupState.value}',
       );
+      // Diagnostic screen is reachable at any auth state for testing.
+      if (state.matchedLocation == '/security-test') return null;
       final session = supabase.auth.currentSession;
 
       // Enforce admin-only access to /admin/* routes. While the UI menus
@@ -196,6 +199,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
 
         builder: (context, state) => const OnboardingScreen(),
+      ),
+
+      GoRoute(
+        path: '/security-test',
+        builder: (context, state) => const SecurityTestScreen(),
       ),
     ],
   );
