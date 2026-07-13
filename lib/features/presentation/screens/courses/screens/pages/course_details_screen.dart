@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:easyedubd_app/core/providers/course_provider.dart';
 import 'package:easyedubd_app/core/services/course_access_service.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
@@ -32,29 +31,27 @@ class CourseDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final coursesAsync = ref.watch(coursesProvider);
+    final courseAsync = ref.watch(courseByIdProvider(courseId));
     final enrolledCourseIdsAsync = ref.watch(enrolledCourseIdsProvider);
     final accessService = CourseAccessService();
 
-    return coursesAsync.when(
+    return courseAsync.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text(e.toString()))),
 
-      data: (courses) {
+      data: (course) {
+        if (course == null) {
+          return const Scaffold(
+            body: Center(child: Text('Course not found')),
+          );
+        }
+
         return enrolledCourseIdsAsync.when(
           loading: () =>
               const Scaffold(body: Center(child: CircularProgressIndicator())),
           error: (e, _) => Scaffold(body: Center(child: Text(e.toString()))),
           data: (enrolledCourseIds) {
-            final course = courses.firstWhereOrNull((c) => c.id == courseId);
-
-            if (course == null) {
-              return const Scaffold(
-                body: Center(child: Text('Course not found')),
-              );
-            }
-
             // TEMP (replace later with Supabase)
             final hasCourseEnrollment = enrolledCourseIds.contains(course.id);
 
@@ -71,8 +68,8 @@ class CourseDetailsScreen extends ConsumerWidget {
 
               body: RefreshIndicator(
                 onRefresh: () async {
-                  ref.invalidate(coursesProvider);
-                  await ref.read(coursesProvider.future);
+                  ref.invalidate(courseByIdProvider(courseId));
+                  await ref.read(courseByIdProvider(courseId).future);
                 },
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),

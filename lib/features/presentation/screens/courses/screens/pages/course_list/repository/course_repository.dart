@@ -70,4 +70,46 @@ class CourseRepository {
       rethrow;
     }
   }
+
+  Future<Course?> getCourseById(int id) async {
+    try {
+      final response = await _supabase
+          .from('course')
+          .select('*, chapter ( *, lesson (*))')
+          .eq('id', id)
+          .maybeSingle();
+
+      if (response == null) return null;
+
+      return Course.fromJson(response as Map<String, dynamic>);
+    } catch (e, stackTrace) {
+      developer.log(e.toString(), error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Fetches only the courses whose ids are in [ids]. Used by "My Courses"
+  /// so enrolled courses are retrieved directly instead of paginating the
+  /// entire course list and filtering client-side (which misses enrolled
+  /// courses that aren't on the first page).
+  Future<List<Course>> getCoursesByIds(
+    List<int> ids, {
+    bool includeChapters = false,
+  }) async {
+    if (ids.isEmpty) return [];
+
+    try {
+      final response = await _supabase
+          .from('course')
+          .select(includeChapters ? '*, chapter ( *, lesson (*))' : '*')
+          .inFilter('id', ids);
+
+      return (response as List<dynamic>)
+          .map((json) => Course.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e, stackTrace) {
+      developer.log(e.toString(), error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
 }

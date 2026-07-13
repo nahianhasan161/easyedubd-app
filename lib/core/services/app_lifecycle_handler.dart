@@ -3,6 +3,8 @@ import 'package:easyedubd_app/core/startup/startup_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easyedubd_app/core/router/app_router.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
 
 class AppLifecycleHandler extends ConsumerStatefulWidget {
   final Widget child;
@@ -39,7 +41,10 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
     final router = ref.read(appRouterProvider);
     switch (result) {
       case AppStartupState.authenticated:
-        // User is still allowed
+        // Refresh course & enrollment data so that courses/enrollments
+        // created while the app was backgrounded show up without a full
+        // restart (previously only "Clear Data" fixed the stale data).
+        _refreshCourseData();
         break;
 
       case AppStartupState.pendingDevice:
@@ -61,6 +66,15 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
       case AppStartupState.loading:
         break;
     }
+  }
+
+  void _refreshCourseData() {
+    // Drop the cached enrollment set so it is re-fetched.
+    ref.invalidate(enrolledCourseIdsProvider);
+    // Re-fetch both course lists (All Courses + My Courses) so newly
+    // added courses appear without restarting the app.
+    ref.read(courseListProvider(false).notifier).loadInitial();
+    ref.read(courseListProvider(true).notifier).loadInitial();
   }
 
   @override

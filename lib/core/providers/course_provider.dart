@@ -6,8 +6,12 @@ import 'package:easyedubd_app/features/presentation/screens/courses/screens/page
 final courseRepositoryProvider = Provider<CourseRepository>((ref) {
   return CourseRepository(Supabase.instance.client);
 });
-final coursesProvider = FutureProvider<List<Course>>((ref) async {
-  ref.keepAlive();
+
+/// Fetches a single course by id directly from Supabase.
+/// Unlike a cached full-list snapshot, this always reflects the latest data,
+/// so newly created courses are visible immediately.
+final courseByIdProvider =
+    FutureProvider.family<Course?, int>((ref, id) async {
   final repository = ref.read(courseRepositoryProvider);
-  return repository.getCourses();
+  return repository.getCourseById(id);
 });

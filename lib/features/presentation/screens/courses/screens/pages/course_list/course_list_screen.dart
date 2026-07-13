@@ -330,6 +330,41 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
       );
     });
 
+    final listChild = courseList.courses.isEmpty
+        ? ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: const [
+              SizedBox(height: 120),
+              Center(child: Text('No courses found.')),
+            ],
+          )
+        : ListView.builder(
+            controller: _scrollController,
+            itemCount:
+                courseList.courses.length + (courseList.isLoadingMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == courseList.courses.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final course = courseList.courses[index];
+              final isEnrolled =
+                  widget.enrolledOnly ||
+                  courseList.enrolledCourseIds?.contains(course.id) == true;
+
+              return CourseCard(
+                course: course,
+                isEnrolled: isEnrolled || course.is_free,
+                onTap: () {
+                  context.push('/course/${course.id}');
+                },
+              );
+            },
+          );
+
     final body = courseList.isInitialLoading
         ? const Center(child: CircularProgressIndicator())
         : courseList.error != null
@@ -359,38 +394,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
               ],
             ),
           )
-        : courseList.courses.isEmpty
-        ? const Center(child: Text('No courses found.'))
-        : RefreshIndicator(
-            onRefresh: _refreshCourses,
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount:
-                  courseList.courses.length +
-                  (courseList.isLoadingMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == courseList.courses.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                final course = courseList.courses[index];
-                final isEnrolled =
-                    widget.enrolledOnly ||
-                    courseList.enrolledCourseIds?.contains(course.id) == true;
-
-                return CourseCard(
-                  course: course,
-                  isEnrolled: isEnrolled || course.is_free,
-                  onTap: () {
-                    context.push('/course/${course.id}');
-                  },
-                );
-              },
-            ),
-          );
+        : RefreshIndicator(onRefresh: _refreshCourses, child: listChild);
 
     final content = GestureDetector(
       onTap: () {

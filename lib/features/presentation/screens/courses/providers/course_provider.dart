@@ -7,6 +7,5 @@ final enrollmentRepositoryProvider = Provider<EnrollmentRepository>((ref) {
 });
 
 final enrolledCourseIdsProvider = FutureProvider<Set<int>>((ref) async {
-  ref.keepAlive();
   return ref.read(enrollmentRepositoryProvider).getEnrolledCourseIds();
 });

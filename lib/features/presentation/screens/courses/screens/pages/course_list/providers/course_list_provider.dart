@@ -99,30 +99,36 @@ class CourseListNotifier extends Notifier<CourseListState> {
 
   Future<void> _fetchPage(int page) async {
     try {
-      final fetched = await _repository.getCourses(
-        limit: pageSize,
-        offset: page * pageSize,
-        year: state.year,
-        subject: state.subject,
-        type: state.type,
-        includeChapters: false,
-      );
-
-      List<Course> filtered = fetched;
+      List<Course> fetched;
 
       if (enrolledOnly) {
+        // Fetch the enrolled courses directly by id (server-side) so they are
+        // always retrieved regardless of their position in the full list.
         final ids = state.enrolledCourseIds;
-        if (ids != null) {
-          filtered = fetched.where((c) => ids.contains(c.id)).toList();
-        }
+        fetched = (ids == null || ids.isEmpty)
+            ? []
+            : await _repository.getCoursesByIds(
+                ids.toList(),
+                includeChapters: false,
+              );
+      } else {
+        fetched = await _repository.getCourses(
+          limit: pageSize,
+          offset: page * pageSize,
+          year: state.year,
+          subject: state.subject,
+          type: state.type,
+          includeChapters: false,
+        );
       }
 
-      final courses = page == 0 ? filtered : [...state.courses, ...filtered];
+      final courses = page == 0 ? fetched : [...state.courses, ...fetched];
 
       state = state.copyWith(
         courses: courses,
         page: page,
-        hasMore: fetched.length == pageSize,
+        // "My Courses" is fetched in full (no pagination).
+        hasMore: !enrolledOnly && fetched.length == pageSize,
         isInitialLoading: false,
         isLoadingMore: false,
         error: null,
