@@ -313,6 +313,11 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
   }
 
   Future<void> _refreshCourses() async {
+    // For "My Courses", also re-fetch the enrollment set so a newly enrolled
+    // course appears after pull-to-refresh (not just the cached ids).
+    if (widget.enrolledOnly) {
+      ref.invalidate(enrolledCourseIdsProvider);
+    }
     await ref
         .read(courseListProvider(widget.enrolledOnly).notifier)
         .loadInitial();
@@ -340,6 +345,9 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
           )
         : ListView.builder(
             controller: _scrollController,
+            // AlwaysScrollable lets pull-to-refresh work even when the list is
+            // short (e.g. a single enrolled course) and can't otherwise overscroll.
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount:
                 courseList.courses.length + (courseList.isLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
@@ -365,36 +373,47 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
             },
           );
 
-    final body = courseList.isInitialLoading
-        ? const Center(child: CircularProgressIndicator())
-        : courseList.error != null
-        ? Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+    final body = RefreshIndicator(
+      onRefresh: _refreshCourses,
+      child: courseList.isInitialLoading
+          ? const Center(child: CircularProgressIndicator())
+          : courseList.error != null
+          // Scrollable so pull-to-refresh still works from the error state.
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                const Icon(
-                  Icons.cloud_off_outlined,
-                  size: 48,
-                  color: Colors.grey,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Could not load courses.\nPlease check your connection and try again.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () => ref
-                      .read(courseListProvider(widget.enrolledOnly).notifier)
-                      .loadInitial(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                const SizedBox(height: 120),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_outlined,
+                        size: 48,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Could not load courses.\nPlease check your connection and try again.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () => ref
+                            .read(courseListProvider(widget.enrolledOnly)
+                                .notifier)
+                            .loadInitial(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
-          )
-        : RefreshIndicator(onRefresh: _refreshCourses, child: listChild);
+            )
+          : listChild,
+    );
 
     final content = GestureDetector(
       onTap: () {

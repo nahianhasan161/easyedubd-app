@@ -12,6 +12,7 @@ import 'package:easyedubd_app/features/presentation/screens/login/login_screen.d
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_devices_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_management_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
@@ -40,6 +41,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         'startup=${startupState.value}',
       );
       final session = supabase.auth.currentSession;
+
+      // Enforce admin-only access to /admin/* routes. While the UI menus
+      // already hide these entries, this guard prevents a non-admin from
+      // reaching them via deep links. Only acts once the profile is loaded
+      // to avoid bouncing admins during the initial load.
+      if (state.matchedLocation.startsWith('/admin')) {
+        final profileState = ref.read(currentProfileProvider);
+        final isAdmin = !profileState.isLoading &&
+            profileState.value?.role?.toLowerCase() == 'admin';
+        if (!isAdmin) return '/dashboard';
+      }
 
       // Not logged in
       if (session == null) {

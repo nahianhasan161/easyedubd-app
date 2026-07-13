@@ -73,15 +73,65 @@ class CourseRepository {
 
   Future<Course?> getCourseById(int id) async {
     try {
-      final response = await _supabase
+      final courseJson = await _supabase
           .from('course')
-          .select('*, chapter ( *, lesson (*))')
+          .select('*')
           .eq('id', id)
           .maybeSingle();
 
-      if (response == null) return null;
+      if (courseJson == null) return null;
 
-      return Course.fromJson(response as Map<String, dynamic>);
+      // Load chapters and lessons with plain (non-embedded) queries. The
+      // previous implementation embedded them via
+      // `chapter ( *, lesson (*) )`, which fails (RLS or ambiguous relation)
+      // and broke the entire details page even though the course itself is
+      // readable. Loading them separately means a chapter/lesson failure
+      // only drops the syllabus, never the page.
+      try {
+        final chaptersJson = await _supabase
+            .from('chapter')
+            .select('*')
+            .eq('course_id', id)
+            .order('position', ascending: true);
+
+        final chapterIds = (chaptersJson as List)
+            .map((c) => (c as Map<String, dynamic>)['id'])
+            .where((e) => e != null)
+            .toList();
+
+        final lessonsByChapter = <String, List<Map<String, dynamic>>>{};
+        if (chapterIds.isNotEmpty) {
+          final lessonsJson = await _supabase
+              .from('lesson')
+              .select('*')
+              .inFilter('chapter_id', chapterIds)
+              .order('position', ascending: true);
+
+          for (final l in lessonsJson as List) {
+            final map = l as Map<String, dynamic>;
+            final cid = map['chapter_id']?.toString();
+            if (cid != null) {
+              lessonsByChapter.putIfAbsent(cid, () => []).add(map);
+            }
+          }
+        }
+
+        final chaptersWithLessons = (chaptersJson as List).map((c) {
+          final map = Map<String, dynamic>.from(c as Map<String, dynamic>);
+          map['lesson'] = lessonsByChapter[map['id'].toString()] ?? [];
+          return map;
+        }).toList();
+
+        (courseJson)['chapter'] = chaptersWithLessons;
+      } catch (e, st) {
+        developer.log(
+          'getCourseById: failed to load chapters for course $id: $e',
+          error: e,
+          stackTrace: st,
+        );
+      }
+
+      return Course.fromJson(courseJson);
     } catch (e, stackTrace) {
       developer.log(e.toString(), error: e, stackTrace: stackTrace);
       rethrow;

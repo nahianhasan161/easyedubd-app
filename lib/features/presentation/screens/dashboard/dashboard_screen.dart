@@ -42,21 +42,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return GestureDetector(
       onTap: () => _scaffoldKey.currentState?.openDrawer(),
+      behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.only(left: 12),
-        child: CircleAvatar(
-          radius: 18,
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          backgroundImage: imageProvider,
-          child: imageProvider == null
-              ? Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              backgroundImage: imageProvider,
+              child: imageProvider == null
+                  ? Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 110),
+              child: Text(
+                name,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -72,6 +90,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       drawer: const AdminDrawer(),
       appBar: AppBar(
         centerTitle: true,
+        leadingWidth: 180,
         leading: _buildProfileAvatar(profileAsync),
         title: Text(_currentIndex == 0 ? 'All Courses' : 'My Courses'),
         actions: [

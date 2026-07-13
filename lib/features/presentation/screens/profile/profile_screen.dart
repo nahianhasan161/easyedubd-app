@@ -67,6 +67,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final id = ref.read(currentUserIdProvider);
     if (id == null) return;
 
+    // Preserve the existing role so saving the profile can't change a
+    // user's admin status (toUpsertJson would otherwise send role: null).
+    final currentRole = ref.read(currentProfileProvider).value?.role;
+
     final profile = Profile(
       id: id,
       fullName: _fullNameController.text.trim(),
@@ -78,6 +82,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       currentYear: _currentYearController.text.trim(),
       avatarUrl: _avatarUrlController.text.trim(),
       gender: _gender,
+      role: currentRole,
     );
 
     await ref.read(profileControllerProvider.notifier).save(profile);
@@ -235,6 +240,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       label: const Text('Save Profile'),
                     ),
                   ),
+                  // User Management is only shown to admins.
+                  if (ref.watch(isAdminProvider)) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push('/admin/users'),
+                        icon: const Icon(Icons.manage_accounts_outlined),
+                        label: const Text('User Management'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
