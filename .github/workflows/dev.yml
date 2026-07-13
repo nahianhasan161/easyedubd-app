@@ -47,7 +47,7 @@ jobs:
       - name: Publish Dev Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: dev
+          tag_name: dev-release
           name: Latest Dev
           prerelease: true
           make_latest: false
