@@ -6,12 +6,14 @@ class CourseCard extends StatelessWidget {
   final Course course;
   final VoidCallback onTap;
   final bool isEnrolled;
+  final VoidCallback? onEnroll;
 
   const CourseCard({
     super.key,
     required this.course,
     required this.onTap,
     this.isEnrolled = false,
+    this.onEnroll,
   });
 
   @override
@@ -62,36 +64,65 @@ class CourseCard extends StatelessWidget {
                   ),
                 ),
 
-                // ENROLLED BADGE (top-left)
-                if (isEnrolled)
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: _Pill(
-                      color: Colors.blue,
-                      icon: Icons.check_circle,
-                      label: 'ENROLLED',
-                    ),
-                  ),
-
-                // FREE / PREMIUM BADGE (top-right)
+                // BADGE (top-right)
                 Positioned(
                   top: 10,
                   right: 10,
                   child: _Pill(
-                    gradient: isFree
+                    gradient: isEnrolled || isFree
                         ? null
                         : const LinearGradient(
                             colors: [Color(0xFFFFF1B8), Color(0xFFE6A817)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                    color: isFree ? Colors.green : null,
-                    icon: isFree ? Icons.check_circle : Icons.workspace_premium_outlined,
-                    label: isFree ? 'FREE' : 'PREMIUM',
-                    gold: !isFree,
+                    color: isEnrolled
+                        ? Colors.blue
+                        : isFree
+                            ? Colors.green
+                            : null,
+                    icon: isEnrolled
+                        ? Icons.check_circle
+                        : isFree
+                            ? Icons.check_circle
+                            : Icons.workspace_premium_outlined,
+                    label: isEnrolled ? 'ENROLLED' : isFree ? 'FREE' : 'PREMIUM',
+                    gold: !isEnrolled && !isFree,
                   ),
                 ),
+
+                // DISCOUNT BADGE (bottom-right of image)
+                if (!isFree && course.price != null)
+                  Positioned(
+                    bottom: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD32F2F),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black45,
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        '-20%',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
 
@@ -129,43 +160,148 @@ class CourseCard extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   // DESCRIPTION
-                  Text(
-                    course.description,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
+                   Text(
+                     course.description,
+                     style: theme.textTheme.bodyMedium?.copyWith(
+                       color: Colors.grey.shade600,
+                     ),
+                     maxLines: 2,
+                     overflow: TextOverflow.ellipsis,
+                   ),
+
+                  if (!isFree && course.price != null) ...[
+                    const SizedBox(height: 14),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            '৳${(course.price!).toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey.shade600,
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF1B8),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '৳${(course.price! * 0.8).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF7A4F01),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // PROGRESS
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value: course.progress,
-                            minHeight: 8,
-                            backgroundColor: Colors.grey.shade200,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              isEnrolled ? theme.colorScheme.primary : const Color(0xFFB8860B),
+                    if (!isEnrolled && onEnroll != null) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: onEnroll,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE6A817),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Enroll Now',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        '${(course.progress * 100).toInt()}%',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
                     ],
+                  ] else if (!isFree && course.price == null)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Paid',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          if (!isEnrolled && onEnroll != null) ...[
+                            const SizedBox(width: 10),
+                            ElevatedButton(
+                              onPressed: onEnroll,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE6A817),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Enroll Now',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                    ),
                   ),
+
+                  if (isEnrolled) ...[
+                    const SizedBox(height: 14),
+
+                    // PROGRESS
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: course.progress,
+                              minHeight: 8,
+                              backgroundColor: Colors.grey.shade200,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${(course.progress * 100).toInt()}%',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -173,8 +309,8 @@ class CourseCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
+      }
+    }
 
 /// Rounded badge used for FREE / PREMIUM / ENROLLED.
 class _Pill extends StatelessWidget {

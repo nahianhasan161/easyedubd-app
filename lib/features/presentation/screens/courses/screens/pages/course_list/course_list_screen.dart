@@ -292,6 +292,9 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
                 onTap: () {
                   context.push('/course/${course.id}');
                 },
+                onEnroll: () {
+                  context.push('/course/${course.id}');
+                },
               );
             },
           );

@@ -11,6 +11,8 @@ class Course {
   final String year;
   final String subject;
   final List<Chapter> chapters;
+  final double? price;
+  final int? position;
 
   const Course({
     required this.id,
@@ -23,6 +25,8 @@ class Course {
     required this.year,
     required this.subject,
     required this.chapters,
+    this.price,
+    this.position,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
@@ -32,14 +36,20 @@ class Course {
       description: json['description'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       progress: (json['progress'] ?? 0.0).toDouble(),
-      status: (json['status'] ?? 'published'),
-      year: (json['year'] ?? ''),
-      subject: (json['subject'] ?? ''),
+      status: json['status'] ?? 'published',
+      year: json['year'] ?? '',
+      subject: json['subject'] ?? '',
       is_free: (json['is_free'] ?? true),
       // This maps the nested Supabase 'Chapter' key
       chapters: (json['chapter'] as List? ?? [])
           .map((e) => Chapter.fromJson(e as Map<String, dynamic>))
           .toList(),
+      price: json['price'] == null
+          ? null
+          : ((json['price'] as num).toDouble() / 100),
+      position: json['position'] == null
+          ? null
+          : (json['position'] as num).toInt(),
     );
   }
 }
