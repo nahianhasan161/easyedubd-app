@@ -207,10 +207,17 @@ class CourseDetailsScreen extends ConsumerWidget {
                                             return;
                                           }
 
-                                          context.push(
-                                            '/lesson/${lesson.videoId}',
-                                            extra: lesson.title,
-                                          );
+                                          if (lesson.videoId.isEmpty) {
+                                            context.push(
+                                              '/lesson',
+                                              extra: lesson.title,
+                                            );
+                                          } else {
+                                            context.push(
+                                              '/lesson/${lesson.videoId}',
+                                              extra: lesson.title,
+                                            );
+                                          }
                                         },
                                       ),
                                     ),

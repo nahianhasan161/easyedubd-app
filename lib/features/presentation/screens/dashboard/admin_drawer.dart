@@ -92,6 +92,14 @@ class AdminDrawer extends ConsumerWidget {
               router.push('/profile');
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.headset_mic_rounded),
+            title: const Text('Contact'),
+            onTap: () {
+              context.pop();
+              context.push('/contact');
+            },
+          ),
           if (isAdmin) ...[
             const Divider(),
             Padding(

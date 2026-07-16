@@ -18,7 +18,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _fullNameController = TextEditingController();
   final _currentLevelController = TextEditingController();
   final _instituteController = TextEditingController();
-  final _facultyController = TextEditingController();
   final _departmentController = TextEditingController();
   final _sessionController = TextEditingController();
   final _currentYearController = TextEditingController();
@@ -40,7 +39,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _fullNameController.dispose();
     _currentLevelController.dispose();
     _instituteController.dispose();
-    _facultyController.dispose();
     _departmentController.dispose();
     _sessionController.dispose();
     _currentYearController.dispose();
@@ -54,7 +52,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _fullNameController.text = profile.fullName ?? '';
     _currentLevelController.text = profile.currentLevel ?? '';
     _instituteController.text = profile.institute ?? '';
-    _facultyController.text = profile.faculty ?? '';
     _departmentController.text = profile.department ?? '';
     _sessionController.text = profile.session ?? '';
     _currentYearController.text = profile.currentYear ?? '';
@@ -77,7 +74,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       fullName: _fullNameController.text.trim(),
       currentLevel: _currentLevelController.text.trim(),
       institute: _instituteController.text.trim(),
-      faculty: _facultyController.text.trim(),
       department: _departmentController.text.trim(),
       session: _sessionController.text.trim(),
       currentYear: _currentYearController.text.trim(),
@@ -204,8 +200,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildField(_instituteController, 'Institute', false),
-                  const SizedBox(height: 12),
-                  _buildField(_facultyController, 'Faculty', false),
                   const SizedBox(height: 12),
                   _buildDropdown(
                     controller: _departmentController,

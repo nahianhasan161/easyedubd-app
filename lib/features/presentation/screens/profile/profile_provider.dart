@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/providers/auth_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -5,7 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profile_repository.dart';
 
 /// The signed-in user's id, exposed as a provider so it can be overridden in tests.
+/// Depends on [authStateProvider] so it re-keys when the account changes.
 final currentUserIdProvider = Provider<String?>((ref) {
+  ref.watch(authStateProvider);
   return Supabase.instance.client.auth.currentUser?.id;
 });
 

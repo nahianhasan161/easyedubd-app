@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/providers/auth_provider.dart';
 import 'package:easyedubd_app/core/router/app_router.dart';
 import 'package:easyedubd_app/core/services/app_lifecycle_handler.dart';
 import 'package:easyedubd_app/core/services/screen_security_service.dart';
@@ -28,10 +29,14 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Keeps the auth-reset listener active so user-scoped caches are cleared
+    // when the signed-in account changes (prevents showing old account data).
+    ref.watch(authResetProvider);
+
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'Easy Education BD',
+      title: 'Easy Education Bangladesh',
       routerConfig: router,
       debugShowCheckedModeBanner: false,
 

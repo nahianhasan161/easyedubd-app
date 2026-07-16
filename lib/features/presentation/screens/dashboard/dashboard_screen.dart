@@ -64,11 +64,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(width: 8),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 110),
+              constraints: const BoxConstraints(maxWidth: 72),
               child: Text(
                 name,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -104,23 +105,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   alignment: Alignment.centerLeft,
                   child: _buildProfileAvatar(profileAsync),
                 ),
-                // Right: notifications button
+                // Right: contact + notifications buttons (opposite the avatar)
                 Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: GestureDetector(
-                      onTap: () => context.push('/notifications'),
-                      child: CircleAvatar(
-                        radius: 18,
-                        backgroundColor:
-                            Theme.of(context).colorScheme.primary,
-                        child: const Icon(
-                          Icons.notifications,
-                          size: 18,
-                          color: Colors.white,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () => context.push('/contact'),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            child: const Icon(
+                              Icons.headset_mic_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => context.push('/notifications'),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            child: const Icon(
+                              Icons.notifications,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

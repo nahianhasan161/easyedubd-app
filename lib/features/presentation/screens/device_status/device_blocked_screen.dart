@@ -37,7 +37,7 @@ class DeviceBlockedScreen extends ConsumerWidget {
 
                 const Text(
                   "This device is no longer authorized to access this account.\n\n"
-                  "Please contact Easy Education BD support if you think this is a mistake.",
+                  "Please contact Easy Education Bangladesh support if you think this is a mistake.",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16),
                 ),
