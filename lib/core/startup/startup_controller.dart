@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easyedubd_app/core/device/device_provider.dart';
 import 'package:easyedubd_app/core/device/device_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,27 +63,34 @@ Future<AppStartupState> recheckOnResume() async {
   }
 
   Future<AppStartupState> _performStartupCheck() async {
-  final session = supabase.auth.currentSession;
+    final session = supabase.auth.currentSession;
 
-  if (session == null) {
-    return AppStartupState.unauthenticated;
-  }
+    if (session == null) {
+      return AppStartupState.unauthenticated;
+    }
 
-  final deviceService = ref.read(deviceServiceProvider);
-  final deviceInfo = await deviceService.getDeviceInfo();
+    final deviceService = ref.read(deviceServiceProvider);
+    final deviceInfo = await deviceService.getDeviceInfo();
 
-  final deviceRepository = ref.read(deviceRepositoryProvider);
-  final result = await deviceRepository.verifyCurrentDevice(deviceInfo);
-
-  switch (result.status) {
-    case DeviceVerificationStatus.approved:
-      return AppStartupState.authenticated;
-
-    case DeviceVerificationStatus.pending:
+    final deviceRepository = ref.read(deviceRepositoryProvider);
+    DeviceVerificationResult result;
+    try {
+      result = await deviceRepository
+          .verifyCurrentDevice(deviceInfo)
+          .timeout(const Duration(seconds: 10));
+    } on TimeoutException {
       return AppStartupState.pendingDevice;
+    }
 
-    case DeviceVerificationStatus.revoked:
-      return AppStartupState.blockedDevice;
+    switch (result.status) {
+      case DeviceVerificationStatus.approved:
+        return AppStartupState.authenticated;
+
+      case DeviceVerificationStatus.pending:
+        return AppStartupState.pendingDevice;
+
+      case DeviceVerificationStatus.revoked:
+        return AppStartupState.blockedDevice;
+    }
   }
-}
 }

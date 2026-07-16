@@ -1,6 +1,7 @@
 import 'package:easyedubd_app/core/providers/auth_notifier.dart';
 import 'package:easyedubd_app/core/startup/startup_controller.dart';
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
+import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -106,7 +107,16 @@ class DevicePendingScreen extends ConsumerWidget {
 
                 OutlinedButton.icon(
                   onPressed: () async {
-                    await ref.read(authControllerProvider.notifier).logout();
+                    final confirmed = await showConfirmDialog(
+                      context,
+                      title: 'Logout',
+                      content: 'Are you sure you want to log out?',
+                      confirmLabel: 'Logout',
+                      isDestructive: true,
+                    );
+                    if (confirmed && context.mounted) {
+                      await ref.read(authControllerProvider.notifier).logout();
+                    }
                   },
                   icon: const Icon(Icons.logout),
                   label: const Text("Logout"),

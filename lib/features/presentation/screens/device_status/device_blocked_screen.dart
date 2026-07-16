@@ -1,5 +1,6 @@
 
 import 'package:easyedubd_app/core/providers/auth_notifier.dart';
+import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,7 +37,7 @@ class DeviceBlockedScreen extends ConsumerWidget {
 
                 const Text(
                   "This device is no longer authorized to access this account.\n\n"
-                  "Please contact Easy Education BD support if you think this is a mistake.",
+                  "Please contact Easy Education Bangladesh support if you think this is a mistake.",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16),
                 ),
@@ -45,7 +46,16 @@ class DeviceBlockedScreen extends ConsumerWidget {
 
                 FilledButton.icon(
                   onPressed: () async {
-                    await ref.read(authControllerProvider.notifier).logout();
+                    final confirmed = await showConfirmDialog(
+                      context,
+                      title: 'Logout',
+                      content: 'Are you sure you want to log out?',
+                      confirmLabel: 'Logout',
+                      isDestructive: true,
+                    );
+                    if (confirmed && context.mounted) {
+                      await ref.read(authControllerProvider.notifier).logout();
+                    }
                   },
                   icon: const Icon(Icons.logout),
                   label: const Text("Logout"),

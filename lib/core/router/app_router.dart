@@ -4,6 +4,7 @@ import 'package:easyedubd_app/core/startup/startup_controller.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_details_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_player.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_coming_soon_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/device_status/device_blocked_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/device_status/device_pending_screen.dart';
@@ -16,6 +17,9 @@ import 'package:easyedubd_app/features/presentation/screens/profile/profile_prov
 import 'package:easyedubd_app/features/presentation/screens/admin/user_devices_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_management_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/settings/security_test_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/settings/notifications_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/settings/contact_screen.dart';
 
 import 'package:easyedubd_app/shared/widgets/youtube_player.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +44,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         'REDIRECT: location=${state.matchedLocation}, '
         'startup=${startupState.value}',
       );
+      // Diagnostic screen is reachable at any auth state for testing.
+      if (state.matchedLocation == '/security-test') return null;
       final session = supabase.auth.currentSession;
 
       // Enforce admin-only access to /admin/* routes. While the UI menus
@@ -52,6 +58,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             profileState.value?.role?.toLowerCase() == 'admin';
         if (!isAdmin) return '/dashboard';
       }
+
+      // Diagnostic / utility screens that should remain reachable even when
+      // the device is pending or blocked.
+      final publicRoutes = {'/security-test', '/notifications', '/contact'};
 
       // Not logged in
       if (session == null) {
@@ -82,23 +92,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         data: (status) {
           switch (status) {
             case AppStartupState.authenticated:
-              final publicRoutes = {'/', '/splash'};
+              final publicAuthRoutes = {'/', '/splash'};
 
-              if (publicRoutes.contains(state.matchedLocation)) {
+              if (publicAuthRoutes.contains(state.matchedLocation)) {
                 return '/dashboard';
               }
 
               return null;
 
             case AppStartupState.pendingDevice:
-              return state.matchedLocation == '/device-pending'
-                  ? null
-                  : '/device-pending';
+              if (publicRoutes.contains(state.matchedLocation) ||
+                  state.matchedLocation == '/device-pending') {
+                return null;
+              }
+              return '/device-pending';
 
             case AppStartupState.blockedDevice:
-              return state.matchedLocation == '/device-blocked'
-                  ? null
-                  : '/device-blocked';
+              if (publicRoutes.contains(state.matchedLocation) ||
+                  state.matchedLocation == '/device-blocked') {
+                return null;
+              }
+              return '/device-blocked';
 
             case AppStartupState.unauthenticated:
               return '/';
@@ -163,6 +177,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // ✅ Lesson coming soon (no video available)
+      GoRoute(
+        path: '/lesson',
+
+        builder: (context, state) {
+          final title = state.extra as String?;
+          return LessonComingSoonScreen(title: title ?? '');
+        },
+      ),
+
       GoRoute(
         path: '/youtubeplayer',
 
@@ -196,6 +220,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
 
         builder: (context, state) => const OnboardingScreen(),
+      ),
+
+      GoRoute(
+        path: '/security-test',
+        builder: (context, state) => const SecurityTestScreen(),
+      ),
+
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+
+      GoRoute(
+        path: '/contact',
+        builder: (context, state) => const ContactScreen(),
       ),
     ],
   );

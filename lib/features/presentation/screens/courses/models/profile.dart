@@ -5,7 +5,6 @@ class Profile {
   final DateTime? createdAt;
   final String? currentLevel;
   final String? institute;
-  final String? faculty;
   final String? department;
   final String? session;
   final String? currentYear;
@@ -19,7 +18,6 @@ class Profile {
     this.createdAt,
     this.currentLevel,
     this.institute,
-    this.faculty,
     this.department,
     this.session,
     this.currentYear,
@@ -37,7 +35,6 @@ class Profile {
           : null,
       currentLevel: json['current_level'] as String?,
       institute: json['institute'] as String?,
-      faculty: json['faculty'] as String?,
       department: json['department'] as String?,
       session: json['session'] as String?,
       currentYear: json['current_year'] as String?,
@@ -54,7 +51,6 @@ class Profile {
       'created_at': createdAt?.toIso8601String(),
       'current_level': currentLevel,
       'institute': institute,
-      'faculty': faculty,
       'department': department,
       'session': session,
       'current_year': currentYear,
@@ -70,7 +66,6 @@ class Profile {
       'avatar_url': avatarUrl,
       'current_level': currentLevel,
       'institute': institute,
-      'faculty': faculty,
       'department': department,
       'session': session,
       'current_year': currentYear,
@@ -86,7 +81,6 @@ class Profile {
     DateTime? createdAt,
     String? currentLevel,
     String? institute,
-    String? faculty,
     String? department,
     String? session,
     String? currentYear,
@@ -100,7 +94,6 @@ class Profile {
       createdAt: createdAt ?? this.createdAt,
       currentLevel: currentLevel ?? this.currentLevel,
       institute: institute ?? this.institute,
-      faculty: faculty ?? this.faculty,
       department: department ?? this.department,
       session: session ?? this.session,
       currentYear: currentYear ?? this.currentYear,

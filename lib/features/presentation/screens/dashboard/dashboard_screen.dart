@@ -1,8 +1,8 @@
-import 'package:easyedubd_app/core/providers/auth_notifier.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/dashboard/admin_drawer.dart';
+import 'package:easyedubd_app/features/presentation/screens/profile/profile_avatar.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +35,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final name = profile?.fullName?.isNotEmpty == true
         ? profile!.fullName!
         : email;
-    final avatarUrl = profile?.avatarUrl;
+    final avatarUrl = resolveAvatarUrl(profile);
     final imageProvider = (avatarUrl != null && avatarUrl.isNotEmpty)
         ? NetworkImage(avatarUrl)
         : null;
@@ -64,11 +64,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(width: 8),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 110),
+              constraints: const BoxConstraints(maxWidth: 72),
               child: Text(
                 name,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -89,28 +90,72 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       key: _scaffoldKey,
       drawer: const AdminDrawer(),
       appBar: AppBar(
-        centerTitle: true,
-        leadingWidth: 180,
-        leading: _buildProfileAvatar(profileAsync),
-        title: Text(_currentIndex == 0 ? 'All Courses' : 'My Courses'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () =>
-                  ref.read(authControllerProvider.notifier).logout(),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color.fromARGB(255, 180, 99, 93),
-                child: const Icon(
-                  Icons.logout,
-                  size: 18,
-                  color: Colors.white,
+        automaticallyImplyLeading: false,
+        leadingWidth: 0,
+        titleSpacing: 0,
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            final titleText =
+                _currentIndex == 0 ? 'All Courses' : 'My Courses';
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // Left: avatar + name
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildProfileAvatar(profileAsync),
                 ),
-              ),
-            ),
-          ),
-        ],
+                // Right: contact + notifications buttons (opposite the avatar)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () => context.push('/contact'),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            child: const Icon(
+                              Icons.headset_mic_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => context.push('/notifications'),
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            child: const Icon(
+                              Icons.notifications,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Centered title (on the full width)
+                Text(
+                  titleText,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
 
       body: IndexedStack(index: _currentIndex, children: _pages),

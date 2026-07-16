@@ -120,6 +120,14 @@ class CourseListNotifier extends Notifier<CourseListState> {
           type: state.type,
           includeChapters: false,
         );
+
+        // Hide enrolled courses from the "All Courses" tab so they only
+        // appear under "My Courses".
+        final enrolled = state.enrolledCourseIds;
+        if (enrolled != null && enrolled.isNotEmpty) {
+          fetched =
+              fetched.where((course) => !enrolled.contains(course.id)).toList();
+        }
       }
 
       final courses = page == 0 ? fetched : [...state.courses, ...fetched];
@@ -173,9 +181,9 @@ class CourseListNotifier extends Notifier<CourseListState> {
 
     state = state.copyWith(enrolledCourseIds: ids);
 
-    if (enrolledOnly) {
-      loadInitial();
-    }
+    // Reload both tabs so enrolled courses disappear from "All Courses"
+    // and appear in "My Courses" as soon as the ids arrive.
+    loadInitial();
   }
 }
 

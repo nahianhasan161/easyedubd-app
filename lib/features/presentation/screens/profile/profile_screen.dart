@@ -1,4 +1,5 @@
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
+import 'package:easyedubd_app/features/presentation/screens/profile/profile_avatar.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +18,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _fullNameController = TextEditingController();
   final _currentLevelController = TextEditingController();
   final _instituteController = TextEditingController();
-  final _facultyController = TextEditingController();
   final _departmentController = TextEditingController();
   final _sessionController = TextEditingController();
   final _currentYearController = TextEditingController();
@@ -39,7 +39,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _fullNameController.dispose();
     _currentLevelController.dispose();
     _instituteController.dispose();
-    _facultyController.dispose();
     _departmentController.dispose();
     _sessionController.dispose();
     _currentYearController.dispose();
@@ -53,7 +52,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _fullNameController.text = profile.fullName ?? '';
     _currentLevelController.text = profile.currentLevel ?? '';
     _instituteController.text = profile.institute ?? '';
-    _facultyController.text = profile.faculty ?? '';
     _departmentController.text = profile.department ?? '';
     _sessionController.text = profile.session ?? '';
     _currentYearController.text = profile.currentYear ?? '';
@@ -76,7 +74,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       fullName: _fullNameController.text.trim(),
       currentLevel: _currentLevelController.text.trim(),
       institute: _instituteController.text.trim(),
-      faculty: _facultyController.text.trim(),
       department: _departmentController.text.trim(),
       session: _sessionController.text.trim(),
       currentYear: _currentYearController.text.trim(),
@@ -137,7 +134,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Stack(
                       alignment: Alignment.bottomRight,
                       children: [
-                        _currentAvatar(),
+                        _currentAvatar(profileAsync.value),
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
@@ -204,8 +201,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 12),
                   _buildField(_instituteController, 'Institute', false),
                   const SizedBox(height: 12),
-                  _buildField(_facultyController, 'Faculty', false),
-                  const SizedBox(height: 12),
                   _buildDropdown(
                     controller: _departmentController,
                     label: 'Department',
@@ -266,8 +261,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return [for (int y = current; y >= current - 10; y--) '$y-${y + 1}'];
   }
 
-  Widget _currentAvatar() {
-    final url = _avatarUrlController.text;
+  Widget _currentAvatar(Profile? profile) {
+    final fieldUrl = _avatarUrlController.text.trim();
+    // When the field is empty, fall back to the stored profile picture or the
+    // auth provider's picture (e.g. Google account photo).
+    final url = fieldUrl.isNotEmpty ? fieldUrl : (resolveAvatarUrl(profile) ?? '');
     final uri = Uri.tryParse(url);
     final valid = uri != null && uri.hasAbsolutePath;
 

@@ -5,6 +5,7 @@ import 'package:easyedubd_app/shared/widgets/App_cached_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CourseDetailsScreen extends ConsumerWidget {
   final int courseId;
@@ -207,10 +208,17 @@ class CourseDetailsScreen extends ConsumerWidget {
                                             return;
                                           }
 
-                                          context.push(
-                                            '/lesson/${lesson.videoId}',
-                                            extra: lesson.title,
-                                          );
+                                          if (lesson.videoId.isEmpty) {
+                                            context.push(
+                                              '/lesson',
+                                              extra: lesson.title,
+                                            );
+                                          } else {
+                                            context.push(
+                                              '/lesson/${lesson.videoId}',
+                                              extra: lesson.title,
+                                            );
+                                          }
                                         },
                                       ),
                                     ),
@@ -225,6 +233,33 @@ class CourseDetailsScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+
+              floatingActionButton: !hasCourseEnrollment &&
+                      !course.is_free &&
+                      course.price != null
+                  ? FloatingActionButton.extended(
+                      onPressed: () {
+                        final offerPrice =
+                            (course.price! * 0.8).toStringAsFixed(0);
+                        final message = Uri.encodeComponent(
+                          'Hello, I want to enroll in ${course.title}. Price: ৳$offerPrice',
+                        );
+                        launchUrl(
+                          Uri.parse('https://wa.me/8801628424161?text=$message'),
+                        );
+                      },
+                      backgroundColor: const Color(0xFFE6A817),
+                      icon: const Icon(Icons.telegram, color: Colors.white),
+                      label: Text(
+                        'Enroll Now ৳${(course.price! * 0.8).toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : null,
             );
           },
         );

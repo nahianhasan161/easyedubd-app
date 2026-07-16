@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/services/screen_security_service.dart';
 import 'package:easyedubd_app/core/startup/startup_controller.dart';
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,9 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
     debugPrint("LIFECYCLE: $state");
     if (state != AppLifecycleState.resumed) return;
     debugPrint("RESUMED");
+    // Some Android OEMs reset the secure flag once the app is backgrounded,
+    // so re-apply screenshot / data-leakage protection on every resume.
+    await ScreenSecurityService.reapply();
     final result = await ref.read(startupProvider.notifier).recheckOnResume();
     debugPrint("INITIALIZE RESULT: $result");
     if (!mounted) return;
