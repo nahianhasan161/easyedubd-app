@@ -17,6 +17,7 @@ import 'package:easyedubd_app/features/presentation/screens/admin/user_devices_s
 import 'package:easyedubd_app/features/presentation/screens/admin/user_management_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/settings/security_test_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/settings/notifications_screen.dart';
 
 import 'package:easyedubd_app/shared/widgets/youtube_player.dart';
 import 'package:flutter/material.dart';
@@ -204,6 +205,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/security-test',
         builder: (context, state) => const SecurityTestScreen(),
+      ),
+
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

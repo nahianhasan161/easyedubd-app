@@ -1,4 +1,5 @@
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
+import 'package:easyedubd_app/features/presentation/screens/profile/profile_avatar.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -137,7 +138,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Stack(
                       alignment: Alignment.bottomRight,
                       children: [
-                        _currentAvatar(),
+                        _currentAvatar(profileAsync.value),
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
@@ -266,8 +267,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return [for (int y = current; y >= current - 10; y--) '$y-${y + 1}'];
   }
 
-  Widget _currentAvatar() {
-    final url = _avatarUrlController.text;
+  Widget _currentAvatar(Profile? profile) {
+    final fieldUrl = _avatarUrlController.text.trim();
+    // When the field is empty, fall back to the stored profile picture or the
+    // auth provider's picture (e.g. Google account photo).
+    final url = fieldUrl.isNotEmpty ? fieldUrl : (resolveAvatarUrl(profile) ?? '');
     final uri = Uri.tryParse(url);
     final valid = uri != null && uri.hasAbsolutePath;
 
