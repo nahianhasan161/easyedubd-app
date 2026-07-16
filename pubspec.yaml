@@ -50,9 +50,10 @@ dependencies:
   url_launcher: ^6.3.1
   package_info_plus: ^8.3.1
 
+  screen_protector: ^1.5.2
   crypto: ^3.0.6
   uuid: ^4.5.1
-  screen_protector: ^1.5.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
