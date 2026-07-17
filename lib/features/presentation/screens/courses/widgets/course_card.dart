@@ -92,7 +92,7 @@ class CourseCard extends StatelessWidget {
                 ),
 
                 // DISCOUNT BADGE (bottom-right of image)
-                if (!isFree && course.price != null)
+                if (!isFree && !isEnrolled && course.price != null)
                   Positioned(
                     bottom: 10,
                     right: 10,
@@ -135,7 +135,7 @@ class CourseCard extends StatelessWidget {
                   // TITLE
                   Text(
                     course.title,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       height: 1.25,
                     ),
@@ -169,7 +169,7 @@ class CourseCard extends StatelessWidget {
                      overflow: TextOverflow.ellipsis,
                    ),
 
-                  if (!isFree && course.price != null) ...[
+                  if (!isFree && !isEnrolled && course.price != null) ...[
                     const SizedBox(height: 14),
                     Align(
                       alignment: Alignment.centerRight,
@@ -222,7 +222,7 @@ class CourseCard extends StatelessWidget {
                             ),
                           ),
                           child: const Text(
-                            'Enroll Now',
+                            'View Details',
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
@@ -231,7 +231,7 @@ class CourseCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ] else if (!isFree && course.price == null)
+                  ] else if (!isFree && !isEnrolled && course.price == null)
                     Align(
                       alignment: Alignment.centerRight,
                       child: Row(
@@ -260,7 +260,7 @@ class CourseCard extends StatelessWidget {
                                 ),
                               ),
                               child: const Text(
-                                'Enroll Now',
+                                'View Details',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,

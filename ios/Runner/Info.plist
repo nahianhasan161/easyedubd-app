@@ -66,6 +66,19 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- post hog -->
+	<key>com.posthog.posthog.AUTO_INIT</key>
+<false/>
+	 <key>com.posthog.posthog.PROJECT_TOKEN</key>
+  <string>phc_nqsCr2zuWpeaysXty3k5txWDCNakM8obCumheGb7qKTD</string>
+  <key>com.posthog.posthog.POSTHOG_HOST</key>
+  <string>https://us.i.posthog.com</string>
+  <key>com.posthog.posthog.CAPTURE_APPLICATION_LIFECYCLE_EVENTS</key>
+  <true/>
+  <key>com.posthog.posthog.DEBUG</key>
+  <true/>
+	<!-- post hog -->
+
 	<!-- Put me in the [my_project]/ios/Runner/Info.plist file -->
 <!-- Google Sign-in Section -->
 <key>CFBundleURLTypes</key>

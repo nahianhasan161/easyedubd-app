@@ -6,8 +6,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 
 void main() async {
+  /* post hog */
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final config = PostHogConfig(
+    'phc_nqsCr2zuWpeaysXty3k5txWDCNakM8obCumheGb7qKTD',
+  );
+  config.host = 'https://us.i.posthog.com';
+  config.debug = true;
+  config.captureApplicationLifecycleEvents = true;
+
+  // Enable session recording. Requires enabling in your project settings as well.
+  // Default is false.
+  config.sessionReplay = true;
+
+  // Enable masking of all text and text input fields. Default is true.
+  config.sessionReplayConfig.maskAllTexts = false;
+
+  // Enable masking of all images. Default is true.
+  config.sessionReplayConfig.maskAllImages = false;
+
+  // Throttling delay used to reduce the number of snapshots captured. Default is 1s.
+  config.sessionReplayConfig.throttleDelay = const Duration(milliseconds: 1000);
+
+  await Posthog().setup(config);
+
+  /* post hog */
+
   WidgetsFlutterBinding.ensureInitialized();
 
   await ScreenSecurityService.enable();
@@ -35,17 +63,19 @@ class MyApp extends ConsumerWidget {
 
     final router = ref.watch(appRouterProvider);
 
-    return MaterialApp.router(
-      title: 'Easy Education Bangladesh',
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    return PostHogWidget(
+      child: MaterialApp.router(
+        title: 'Easy Education Bangladesh',
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
 
-      builder: (context, child) {
-        return AppLifecycleHandler(child: child!);
-      },
+        builder: (context, child) {
+          return AppLifecycleHandler(child: child!);
+        },
 
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ),
       ),
     );
   }

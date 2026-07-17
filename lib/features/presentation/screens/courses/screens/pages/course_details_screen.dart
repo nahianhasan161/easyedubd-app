@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 
 class CourseDetailsScreen extends ConsumerWidget {
   final int courseId;
@@ -43,9 +44,7 @@ class CourseDetailsScreen extends ConsumerWidget {
 
       data: (course) {
         if (course == null) {
-          return const Scaffold(
-            body: Center(child: Text('Course not found')),
-          );
+          return const Scaffold(body: Center(child: Text('Course not found')));
         }
 
         return enrolledCourseIdsAsync.when(
@@ -234,18 +233,32 @@ class CourseDetailsScreen extends ConsumerWidget {
                 ),
               ),
 
-              floatingActionButton: !hasCourseEnrollment &&
+              floatingActionButton:
+                  !hasCourseEnrollment &&
                       !course.is_free &&
                       course.price != null
                   ? FloatingActionButton.extended(
-                      onPressed: () {
-                        final offerPrice =
-                            (course.price! * 0.8).toStringAsFixed(0);
+                      onPressed: () async {
+                        // 1. Capture the event in PostHog
+                        await Posthog().capture(
+                          eventName: 'enroll_button_clicked',
+                          properties: {
+                            'course_title': course.title,
+                            'original_price': course.price!.toStringAsFixed(0),
+                            'offer_price': (course.price! * 0.8)
+                                .toStringAsFixed(0),
+                          },
+                        );
+
+                        final offerPrice = (course.price! * 0.8)
+                            .toStringAsFixed(0);
                         final message = Uri.encodeComponent(
                           'Hello, I want to enroll in ${course.title}. Price: ৳$offerPrice',
                         );
                         launchUrl(
-                          Uri.parse('https://wa.me/8801628424161?text=$message'),
+                          Uri.parse(
+                            'https://wa.me/8801628424161?text=$message',
+                          ),
                         );
                       },
                       backgroundColor: const Color(0xFFE6A817),

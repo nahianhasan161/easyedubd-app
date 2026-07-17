@@ -64,12 +64,30 @@
       }
     },
     {
+      "identity" : "posthog-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/PostHog/posthog-ios",
+      "state" : {
+        "revision" : "19288ee2f0575606b4669b2abadda2c9db97c529",
+        "version" : "3.66.1"
+      }
+    },
+    {
       "identity" : "promises",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/promises.git",
       "state" : {
         "revision" : "f4a19a3c313dc2616c70bb49d29a799fb16be837",
         "version" : "2.4.1"
+      }
+    },
+    {
+      "identity" : "screenprotectorkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/prongbang/ScreenProtectorKit.git",
+      "state" : {
+        "revision" : "1d00d802ed3b919988e273072052388e32a92920",
+        "version" : "1.5.1"
       }
     }
   ],
