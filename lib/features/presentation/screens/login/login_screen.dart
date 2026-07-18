@@ -4,6 +4,7 @@ import 'package:easyedubd_app/core/startup/startup_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -23,6 +24,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showErrorDialog(String message) {
+    return showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Authentication Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Maps a raw auth/network error into a clear, user-friendly message.
@@ -263,12 +280,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ? null
                             : () async {
                                 setState(() => _errorMessage = null);
+                                // Trigger Sign-in
                                 await ref
                                     .read(authControllerProvider.notifier)
                                     .signInWithGoogle();
                                 if (!mounted) return;
                                 final gState = ref.read(authControllerProvider);
+                                // Log error to PostHog if it occurs
                                 if (gState.hasError) {
+                                  await Posthog().capture(
+                                    eventName: 'google_signin_error',
+                                    properties: {
+                                      'error_message': gState.error.toString(),
+                                      'timestamp': DateTime.now()
+                                          .toIso8601String(),
+                                    },
+                                  );
+                                  // Show raw error in the dialog for debugging
+                                  await _showErrorDialog(
+                                    "Google Sign-In Failed: ${gState.error.toString()}",
+                                  );
                                   setState(
                                     () => _errorMessage = _friendlyError(
                                       gState.error,
@@ -276,6 +307,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   );
                                   return;
                                 }
+                                // Success: Proceed to initialization
                                 final status = await ref
                                     .read(startupProvider.notifier)
                                     .initialize();
