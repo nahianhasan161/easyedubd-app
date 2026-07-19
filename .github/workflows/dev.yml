@@ -89,11 +89,16 @@ jobs:
           $dest = "build\windows\x64\runner\Release\EasyEducationBD-dev.exe"
           Move-Item -Path $src -Destination $dest -Force
 
-      - name: Upload EXE artifact
+      - name: Zip Release folder
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "EasyEducationBD-dev-windows.zip"
+
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
-          path: build\windows\x64\runner\Release\EasyEducationBD-dev.exe
+          path: EasyEducationBD-dev-windows.zip
 
   # Combine, Tag, and Release
   publish:
@@ -111,4 +116,4 @@ jobs:
           make_latest: false
           files: |
             android-apk/EasyEducationBD-dev.apk
-            windows-exe/EasyEducationBD-dev.exe
+            windows-exe/EasyEducationBD-dev-windows.zip
