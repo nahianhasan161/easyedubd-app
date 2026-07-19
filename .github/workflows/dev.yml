@@ -46,24 +46,37 @@ jobs:
   # Windows Job
   build-windows:
     runs-on: windows-latest
-    env:
-      CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.44.2"
       - run: flutter pub get
-      - run: flutter build windows --release
       
-      - name: Rename and Move EXE
-        shell: powershell
+      - name: Build Windows Release
+        shell: pwsh
+        run: flutter build windows --release
+        env:
+          CMAKE_BUILD_TYPE: Release
+      
+      - name: Verify Release Build
+        shell: pwsh
         run: |
-          $file = Get-ChildItem -Path "build\windows" -Filter *.exe -Recurse | Select-Object -First 1
-          $destDir = "build\windows\x64\runner\Release\"
-          New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-          Move-Item -Path $file.FullName -Destination (Join-Path $destDir "EasyEducationBD-dev.exe")
-        
+          $exe = Get-ChildItem -Path "build\windows\x64\runner\Release" -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { throw "No Release EXE found!" }
+          $deps = & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" /dependents $exe.FullName 2>$null
+          if ($deps -match "VCRUNTIME140D|MSVCP140D|ucrtbased") {
+            throw "DEBUG runtime dependencies found!"
+          }
+          Write-Host "✓ Release build verified: $($exe.FullName)"
+      
+      - name: Rename EXE
+        shell: pwsh
+        run: |
+          $src = "build\windows\x64\runner\Release\easyedubd_app.exe"
+          $dest = "build\windows\x64\runner\Release\EasyEducationBD-dev.exe"
+          Move-Item -Path $src -Destination $dest -Force
+      
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
