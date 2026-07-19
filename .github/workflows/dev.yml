@@ -36,7 +36,7 @@ jobs:
           EOF
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk EasyEducationBD-dev.apk
-
+      
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -46,6 +46,9 @@ jobs:
   # Windows Job
   build-windows:
     runs-on: windows-latest
+    env:
+      # Suppress deprecated coroutine error for MSVC
+      CXXFLAGS: "/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS"
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -53,11 +56,11 @@ jobs:
           flutter-version: "3.44.2"
       - run: flutter pub get
       - run: flutter build windows --release
-
+      
       # Rename the generated EXE for identification
       - name: Rename EXE
         run: Rename-Item -Path "build\windows\x64\runner\Release\EasyEducationBD.exe" -NewName "EasyEducationBD-dev.exe"
-
+        
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
@@ -70,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-
+      
       - name: Publish Dev Release
         uses: softprops/action-gh-release@v2
         with:
