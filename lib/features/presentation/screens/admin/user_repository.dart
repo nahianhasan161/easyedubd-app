@@ -22,6 +22,24 @@ class PaginatedUsers {
   int get end => (start + items.length - 1).clamp(0, total);
 }
 
+class PaginatedDevices {
+  final List<UserDevice> items;
+  final int total;
+  final int page;
+  final int pageSize;
+
+  PaginatedDevices({
+    required this.items,
+    required this.total,
+    required this.page,
+    required this.pageSize,
+  });
+
+  int get totalPages => (total / pageSize).ceil();
+  int get start => total == 0 ? 0 : (page - 1) * pageSize + 1;
+  int get end => (start + items.length - 1).clamp(0, total);
+}
+
 class UserRepository {
   final SupabaseClient _supabase;
 
@@ -30,13 +48,23 @@ class UserRepository {
   Future<PaginatedUsers> getUsers({
     required int page,
     int pageSize = 15,
+    String? search,
+    String? role,
   }) async {
     final start = (page - 1) * pageSize;
     final end = start + pageSize - 1;
 
-    final response = await _supabase
-        .from('profiles')
-        .select()
+    PostgrestFilterBuilder<PostgrestList> query =
+        _supabase.from('profiles').select();
+
+    if (search != null && search.trim().isNotEmpty) {
+      query = query.ilike('full_name', '%${search.trim()}%');
+    }
+    if (role != null && role != 'all') {
+      query = query.eq('role', role);
+    }
+
+    final response = await query
         .order('created_at', ascending: false)
         .range(start, end)
         .count(CountOption.exact);
@@ -58,16 +86,33 @@ class UserRepository {
     await _supabase.from('profiles').update({'role': role}).eq('id', id);
   }
 
-  Future<List<UserDevice>> getUserDevices(String userId) async {
-    final data = await _supabase
+  Future<PaginatedDevices> getUserDevices(
+    String userId, {
+    required int page,
+    int pageSize = 15,
+  }) async {
+    final start = (page - 1) * pageSize;
+    final end = start + pageSize - 1;
+
+    final response = await _supabase
         .from('user_devices')
         .select()
         .eq('user_id', userId)
-        .order('last_seen_at', ascending: false);
+        .order('last_seen_at', ascending: false)
+        .range(start, end)
+        .count(CountOption.exact);
 
-    return (data as List)
+    final data = response.data as List;
+    final items = data
         .map((e) => UserDevice.fromJson(e as Map<String, dynamic>))
         .toList();
+
+    return PaginatedDevices(
+      items: items,
+      total: response.count,
+      page: page,
+      pageSize: pageSize,
+    );
   }
 
   Future<void> setDeviceApproved({

@@ -17,15 +17,62 @@ class UserManagementScreen extends ConsumerStatefulWidget {
 class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   int _page = 1;
   final Set<String> _busy = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _roleFilter = 'all';
 
-  Future<void> _changeRole(Profile user) async {
+  UsersQuery get _query => UsersQuery(
+        page: _page,
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
+        role: _roleFilter,
+      );
+
+  Future<void> _refresh() async {
+    ref.invalidate(usersProvider(_query));
+    await ref.read(usersProvider(_query).future);
+  }
+
+  void _applyFilters() {
+    // Reset to the first page whenever a filter changes.
+    setState(() => _page = 1);
+    ref.invalidate(usersProvider(_query));
+  }
+
+  void _changeRole(Profile user) {
     final isAdmin = (user.role ?? 'user').toLowerCase() == 'admin';
     final newRole = isAdmin ? 'user' : 'admin';
+    final actionLabel = newRole == 'admin' ? 'Make Admin' : 'Make User';
+    final target = newRole == 'admin' ? 'an admin' : 'a regular user';
 
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Are you sure?'),
+        content: Text(
+          'Do you want to make ${user.fullName ?? 'this user'} $target?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(actionLabel),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed == true) _applyRoleChange(user, newRole);
+    });
+  }
+
+  Future<void> _applyRoleChange(Profile user, String newRole) async {
     setState(() => _busy.add(user.id));
     try {
       await ref.read(userRepositoryProvider).updateRole(user.id, newRole);
-      ref.invalidate(usersProvider(_page));
+      ref.invalidate(usersProvider(_query));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -50,9 +97,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isAdmin = ref.watch(isAdminProvider);
-    final usersAsync = ref.watch(usersProvider(_page));
+    final usersAsync = ref.watch(usersProvider(_query));
 
     return Scaffold(
       appBar: AppBar(title: const Text('User Management')),
@@ -63,52 +116,117 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 style: TextStyle(fontSize: 16),
               ),
             )
-          : usersAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Error: $e'),
-                ),
-              ),
-              data: (page) {
-                if (page.items.isEmpty) {
-                  return const Center(child: Text('No users found.'));
-                }
-
-                return Column(
-                  children: [
-                    Expanded(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: page.items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final user = page.items[index];
-                          return _UserTile(
-                            user: user,
-                            busy: _busy.contains(user.id),
-                            onToggleRole: () => _changeRole(user),
-                            onTap: () => context.push(
-                              '/admin/users/${user.id}/devices',
-                              extra: user.fullName ?? user.id,
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search by name',
+                            prefixIcon: const Icon(Icons.search),
+                            isDense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          );
+                          ),
+                          textInputAction: TextInputAction.search,
+                          onChanged: (value) {
+                            // Debounce typing so we don't query on every keystroke.
+                            Future.delayed(const Duration(milliseconds: 400), () {
+                              if (mounted &&
+                                  _searchController.text == value) {
+                                _applyFilters();
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      DropdownButton<String>(
+                        value: _roleFilter,
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('All')),
+                          DropdownMenuItem(value: 'user', child: Text('Users')),
+                          DropdownMenuItem(
+                            value: 'admin', child: Text('Admins')),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() => _roleFilter = value);
+                          _applyFilters();
                         },
                       ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: usersAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, _) => ListView(
+                        children: [
+                          const SizedBox(height: 40),
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text('Error: $e'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      data: (page) {
+                        if (page.items.isEmpty) {
+                          return const Center(
+                            child: Text('No users found.'),
+                          );
+                        }
+
+                        return Column(
+                          children: [
+                            Expanded(
+                              child: ListView.separated(
+                                padding: const EdgeInsets.all(12),
+                                itemCount: page.items.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final user = page.items[index];
+                                  return _UserTile(
+                                    user: user,
+                                    busy: _busy.contains(user.id),
+                                    onToggleRole: () => _changeRole(user),
+                                    onTap: () => context.push(
+                                      '/admin/users/${user.id}',
+                                      extra: user,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            _PaginationBar(
+                              page: page,
+                              onPrevious: _page > 1
+                                  ? () => setState(() => _page--)
+                                  : null,
+                              onNext: _page < page.totalPages
+                                  ? () => setState(() => _page++)
+                                  : null,
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                    _PaginationBar(
-                      page: page,
-                      onPrevious: _page > 1
-                          ? () => setState(() => _page--)
-                          : null,
-                      onNext: _page < page.totalPages
-                          ? () => setState(() => _page++)
-                          : null,
-                    ),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ],
             ),
     );
   }

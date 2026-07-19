@@ -12,10 +12,16 @@ import 'package:easyedubd_app/features/presentation/screens/device_status/device
 import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_devices_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_management_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/course_management_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/user_detail_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/course_enrollment_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/chapter_management_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/lesson_management_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/splash/splash_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/settings/security_test_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/settings/notifications_screen.dart';
@@ -236,6 +242,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        name: 'user-detail',
+        path: '/admin/users/:userId',
+        builder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          final profile = state.extra as Profile?;
+          final userName = profile?.fullName ?? 'User';
+
+          return UserDetailScreen(
+            userId: userId,
+            userName: userName,
+            profile: profile,
+          );
+        },
+      ),
+
+      GoRoute(
         name: 'user-devices',
         path: '/admin/users/:userId/devices',
 
@@ -244,6 +266,62 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final userName = state.extra as String? ?? 'User';
 
           return UserDevicesScreen(userId: userId, userName: userName);
+        },
+      ),
+
+      GoRoute(
+        name: 'course-enrollment',
+        path: '/admin/courses',
+        builder: (context, state) => const CourseEnrollmentScreen(courseId: 0, courseTitle: ''),
+      ),
+
+      GoRoute(
+        name: 'course-enrollments',
+        path: '/admin/courses/:courseId/enrollments',
+        builder: (context, state) {
+          final courseId = int.parse(state.pathParameters['courseId']!);
+          final courseTitle = state.extra as String? ?? 'Course';
+
+          return CourseEnrollmentScreen(
+            courseId: courseId,
+            courseTitle: courseTitle,
+          );
+        },
+      ),
+
+      GoRoute(
+        name: 'course-management',
+        path: '/admin/course-management',
+        builder: (context, state) => const AdminCourseManagementScreen(),
+      ),
+
+      GoRoute(
+        name: 'admin-chapters',
+        path: '/admin/courses/:courseId/chapters',
+        builder: (context, state) {
+          final courseId = int.parse(state.pathParameters['courseId']!);
+          final courseTitle = state.extra as String? ?? 'Course';
+
+          return AdminChapterManagementScreen(
+            courseId: courseId,
+            courseTitle: courseTitle,
+          );
+        },
+      ),
+
+      GoRoute(
+        name: 'admin-lessons',
+        path: '/admin/courses/:courseId/chapters/:chapterId/lessons',
+        builder: (context, state) {
+          final courseId = int.parse(state.pathParameters['courseId']!);
+          final chapterId = int.parse(state.pathParameters['chapterId']!);
+          final chapterTitle = state.extra as String? ?? 'Chapter';
+
+          return AdminLessonManagementScreen(
+            courseId: courseId,
+            chapterId: chapterId,
+            chapterTitle: chapterTitle,
+          );
         },
       ),
 

@@ -20,7 +20,10 @@ class UserDevicesScreen extends ConsumerStatefulWidget {
 }
 
 class _UserDevicesScreenState extends ConsumerState<UserDevicesScreen> {
+  int _page = 1;
   final Set<String> _busy = {};
+
+  DevicesQuery get _query => DevicesQuery(userId: widget.userId, page: _page);
 
   (IconData, Color, String) _statusVisual(DeviceStatus status) => switch (status) {
         DeviceStatus.approved => (
@@ -41,8 +44,8 @@ class _UserDevicesScreenState extends ConsumerState<UserDevicesScreen> {
       };
 
   Future<void> _refresh() async {
-    ref.invalidate(userDevicesProvider(widget.userId));
-    await ref.read(userDevicesProvider(widget.userId).future);
+    ref.invalidate(userDevicesProvider(_query));
+    await ref.read(userDevicesProvider(_query).future);
   }
 
   Future<void> _setStatus(UserDevice device, DeviceStatus newStatus) async {
@@ -60,7 +63,7 @@ class _UserDevicesScreenState extends ConsumerState<UserDevicesScreen> {
             adminId: adminId,
             revokedAt: revokedAt,
           );
-      ref.invalidate(userDevicesProvider(widget.userId));
+      ref.invalidate(userDevicesProvider(_query));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Device set to ${newStatus.name}')),
@@ -83,7 +86,7 @@ class _UserDevicesScreenState extends ConsumerState<UserDevicesScreen> {
   @override
   Widget build(BuildContext context) {
     final isAdmin = ref.watch(isAdminProvider);
-    final devicesAsync = ref.watch(userDevicesProvider(widget.userId));
+    final devicesAsync = ref.watch(userDevicesProvider(_query));
 
     return Scaffold(
       appBar: AppBar(title: Text('Devices · ${widget.userName}')),
@@ -97,96 +100,174 @@ class _UserDevicesScreenState extends ConsumerState<UserDevicesScreen> {
           : RefreshIndicator(
               onRefresh: _refresh,
               child: devicesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('Error: $e'),
-                  ),
+                loading: () => ListView(
+                  children: const [
+                    SizedBox(height: 80),
+                    Center(child: CircularProgressIndicator()),
+                  ],
                 ),
-                data: (devices) {
-                  if (devices.isEmpty) {
-                    return const Center(
-                      child: Text('No devices registered for this user.'),
+                error: (e, _) => ListView(
+                  children: [
+                    const SizedBox(height: 40),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text('Error: $e'),
+                      ),
+                    ),
+                  ],
+                ),
+                data: (page) {
+                  if (page.items.isEmpty) {
+                    return ListView(
+                      children: const [
+                        SizedBox(height: 80),
+                        Center(
+                          child: Text('No devices registered for this user.'),
+                        ),
+                      ],
                     );
                   }
 
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: devices.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final device = devices[index];
-                    final title = device.deviceName?.isNotEmpty == true
-                        ? device.deviceName!
-                        : '${device.manufacturer ?? ''} ${device.model ?? ''}'
-                            .trim()
-                            .isEmpty
-                        ? device.platform
-                        : '${device.manufacturer} ${device.model}';
-                    final subtitle = [
-                      device.platform,
-                      if (device.osVersion?.isNotEmpty == true)
-                        'OS ${device.osVersion}',
-                      if (device.appVersion?.isNotEmpty == true)
-                        'App ${device.appVersion}',
-                    ].where((e) => e.isNotEmpty).join(' · ');
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: page.items.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final device = page.items[index];
+                          final title = device.deviceName?.isNotEmpty == true
+                              ? device.deviceName!
+                              : '${device.manufacturer ?? ''} ${device.model ?? ''}'
+                                  .trim()
+                                  .isEmpty
+                              ? device.platform
+                              : '${device.manufacturer} ${device.model}';
+                          final subtitle = [
+                            device.platform,
+                            if (device.osVersion?.isNotEmpty == true)
+                              'OS ${device.osVersion}',
+                            if (device.appVersion?.isNotEmpty == true)
+                              'App ${device.appVersion}',
+                          ].where((e) => e.isNotEmpty).join(' · ');
 
-                    final status = device.status;
-                    final (IconData icon, Color color, String label) =
-                        _statusVisual(status);
+                          final status = device.status;
+                          final (IconData icon, Color color, String label) =
+                              _statusVisual(status);
 
-                    return ListTile(
-                      leading: Icon(icon, color: color),
-                      title: Text(title),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: color,
+                          return ListTile(
+                            leading: Icon(icon, color: color),
+                            title: Text(title),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: color,
+                                  ),
+                                ),
+                                if (subtitle.isNotEmpty) Text(subtitle),
+                                Text(
+                                  'ID: ${device.installationId}',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              ],
                             ),
-                          ),
-                          if (subtitle.isNotEmpty) Text(subtitle),
-                          Text(
-                            'ID: ${device.installationId}',
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ],
+                            trailing: _busy.contains(device.id)
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : DropdownButton<DeviceStatus>(
+                                    value: status,
+                                    isDense: true,
+                                    underline: const SizedBox.shrink(),
+                                    items: DeviceStatus.values.map((s) {
+                                      final (_, __, itemLabel) = _statusVisual(s);
+                                      return DropdownMenuItem(
+                                        key: Key('${device.id}_${s.name}'),
+                                        value: s,
+                                        child: Text(itemLabel),
+                                      );
+                                    }).toList(),
+                                    onChanged: (selected) {
+                                      if (selected != null && selected != status) {
+                                        _setStatus(device, selected);
+                                      }
+                                    },
+                                  ),
+                          );
+                          },
+                        ),
                       ),
-                      trailing: _busy.contains(device.id)
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : DropdownButton<DeviceStatus>(
-                              value: status,
-                              isDense: true,
-                              underline: const SizedBox.shrink(),
-                              items: DeviceStatus.values.map((s) {
-                                final (_, __, itemLabel) = _statusVisual(s);
-                                return DropdownMenuItem(
-                                  key: Key('${device.id}_${s.name}'),
-                                  value: s,
-                                  child: Text(itemLabel),
-                                );
-                              }).toList(),
-                              onChanged: (selected) {
-                                if (selected != null && selected != status) {
-                                  _setStatus(device, selected);
-                                }
-                              },
-                            ),
-                    );
-                    },
+                      _DevicesPaginationBar(
+                        page: page,
+                        onPrevious: _page > 1
+                            ? () => setState(() => _page--)
+                            : null,
+                        onNext: _page < page.totalPages
+                            ? () => setState(() => _page++)
+                            : null,
+                      ),
+                    ],
                   );
                 },
               ),
             ),
+    );
+  }
+}
+
+class _DevicesPaginationBar extends StatelessWidget {
+  const _DevicesPaginationBar({
+    required this.page,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final PaginatedDevices page;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalPages = page.totalPages;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey[300]!)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '${page.start}–${page.end} of ${page.total}',
+            style: const TextStyle(fontSize: 13),
+          ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: onPrevious,
+                icon: const Icon(Icons.chevron_left),
+                tooltip: 'Previous',
+              ),
+              Text('Page ${page.page} of ${totalPages == 0 ? 1 : totalPages}'),
+              IconButton(
+                onPressed: onNext,
+                icon: const Icon(Icons.chevron_right),
+                tooltip: 'Next',
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

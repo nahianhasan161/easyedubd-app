@@ -31,6 +31,8 @@ class FakeUserRepository extends UserRepository {
   Future<PaginatedUsers> getUsers({
     required int page,
     int pageSize = 15,
+    String? search,
+    String? role,
   }) async {
     final start = (page - 1) * pageSize;
     final end = (start + pageSize).clamp(0, users.length);
@@ -81,9 +83,22 @@ class FakeUserRepository extends UserRepository {
   int getUserDevicesCallCount = 0;
 
   @override
-  Future<List<UserDevice>> getUserDevices(String userId) async {
+  Future<PaginatedDevices> getUserDevices(
+    String userId, {
+    required int page,
+    int pageSize = 15,
+  }) async {
     getUserDevicesCallCount++;
-    return deviceMap[userId] ?? [];
+    final all = deviceMap[userId] ?? [];
+    final start = (page - 1) * pageSize;
+    final end = (start + pageSize).clamp(0, all.length);
+    final items = all.sublist(start, end);
+    return PaginatedDevices(
+      items: items,
+      total: all.length,
+      page: page,
+      pageSize: pageSize,
+    );
   }
 
   @override

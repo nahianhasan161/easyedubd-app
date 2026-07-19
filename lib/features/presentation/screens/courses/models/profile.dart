@@ -10,6 +10,8 @@ class Profile {
   final String? currentYear;
   final String? gender;
   final String? role;
+  final String? email;
+  final String? phone;
 
   const Profile({
     required this.id,
@@ -23,9 +25,16 @@ class Profile {
     this.currentYear,
     this.gender,
     this.role,
+    this.email,
+    this.phone,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
+    final phoneValue = json['phone'];
+    final phone = phoneValue is String
+        ? phoneValue
+        : phoneValue?.toString();
+
     return Profile(
       id: json['id'] as String,
       fullName: json['full_name'] as String?,
@@ -40,6 +49,8 @@ class Profile {
       currentYear: json['current_year'] as String?,
       gender: json['gender'] as String?,
       role: json['role'] as String?,
+      email: json['email'] as String?,
+      phone: phone,
     );
   }
 
@@ -56,6 +67,8 @@ class Profile {
       'current_year': currentYear,
       'gender': gender,
       'role': role,
+      'email': email,
+      'phone': phone,
     };
   }
 
@@ -86,6 +99,8 @@ class Profile {
     String? currentYear,
     String? gender,
     String? role,
+    String? email,
+    String? phone,
   }) {
     return Profile(
       id: id ?? this.id,
@@ -99,6 +114,8 @@ class Profile {
       currentYear: currentYear ?? this.currentYear,
       gender: gender ?? this.gender,
       role: role ?? this.role,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
     );
   }
 }

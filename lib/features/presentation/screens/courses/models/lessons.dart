@@ -7,6 +7,7 @@ class Lesson {
   final Duration duration;
   final bool isCompleted;
   final bool isLocked;
+  final int? position;
 
   const Lesson({
     required this.id,
@@ -17,6 +18,7 @@ class Lesson {
     required this.duration,
     this.isCompleted = false,
     this.isLocked = false,
+    this.position,
   });
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class Lesson {
     final isCompleted =
         (json['isCompleted'] ?? json['is_completed'] ?? false) as bool;
     final isLocked = (json['isLock'] ?? json['is_locked'] ?? false) as bool;
+    final position = json['position'] is int ? json['position'] as int : null;
 
     return Lesson(
       id: json['id'].toString(),
@@ -40,6 +43,7 @@ class Lesson {
       isCompleted: isCompleted,
 
       isLocked: isLocked,
+      position: position,
     );
   }
 }

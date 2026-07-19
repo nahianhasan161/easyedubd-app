@@ -171,32 +171,66 @@ class CourseDetailsScreen extends ConsumerWidget {
                                             14,
                                           ),
                                         ),
-                                        leading: CircleAvatar(
-                                          radius: 18,
-                                          backgroundColor: canWatch
-                                              ? Colors.green.shade100
-                                              : Colors.red.shade100,
-                                          child: Icon(
-                                            canWatch
-                                                ? Icons.play_arrow_rounded
-                                                : Icons.lock_rounded,
-                                            color: canWatch
-                                                ? Colors.green
-                                                : Colors.red,
-                                          ),
-                                        ),
                                         title: Text(
                                           lesson.title,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        subtitle: Text(
-                                          "${lesson.duration.inMinutes} min",
+                                        subtitle: Row(
+                                          children: [
+                                            if (lesson.videoId.isNotEmpty) ...[
+                                              Text(
+                                                "${lesson.duration.inMinutes} min",
+                                              ),
+                                            ],
+                                            if (lesson.videoId.isEmpty) ...[
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.orange.shade100,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  'Coming Soon',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.orange.shade800,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        leading: CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: !canWatch
+                                              ? Colors.red.shade100
+                                              : lesson.videoId.isEmpty
+                                                  ? Colors.orange.shade100
+                                                  : Colors.green.shade100,
+                                          child: Icon(
+                                            !canWatch
+                                                ? Icons.lock_rounded
+                                                : lesson.videoId.isEmpty
+                                                    ? Icons.schedule_rounded
+                                                    : Icons.play_arrow_rounded,
+                                            color: !canWatch
+                                                ? Colors.red
+                                                : lesson.videoId.isEmpty
+                                                    ? Colors.orange
+                                                    : Colors.green,
+                                          ),
                                         ),
                                         trailing: Icon(
                                           canWatch
-                                              ? Icons.arrow_forward_ios_rounded
+                                              ? lesson.videoId.isEmpty
+                                                  ? Icons.hourglass_empty_rounded
+                                                  : Icons.arrow_forward_ios_rounded
                                               : Icons.lock_outline_rounded,
                                           size: 18,
                                           color: Colors.grey,
