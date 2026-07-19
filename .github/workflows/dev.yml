@@ -56,19 +56,13 @@ jobs:
       - run: flutter pub get
       - run: flutter build windows --release
       
-      # Diagnostic: List files to find the correct path and name
-      - name: Find EXE
-        shell: powershell
-        run: Get-ChildItem -Path "build\windows" -Filter *.exe -Recurse
-      
-      # Rename the generated EXE
-      # If the diagnostic step shows a different name, change 'EasyEducationBD.exe' below
-      - name: Rename EXE
+      - name: Rename and Move EXE
         shell: powershell
         run: |
           $file = Get-ChildItem -Path "build\windows" -Filter *.exe -Recurse | Select-Object -First 1
-          Rename-Item -Path $file.FullName -NewName "EasyEducationBD-dev.exe"
-          Move-Item -Path "EasyEducationBD-dev.exe" -Destination "build\windows\x64\runner\Release\"
+          $destDir = "build\windows\x64\runner\Release\"
+          New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+          Move-Item -Path $file.FullName -Destination (Join-Path $destDir "EasyEducationBD-dev.exe")
         
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
