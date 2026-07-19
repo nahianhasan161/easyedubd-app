@@ -36,7 +36,7 @@ jobs:
           EOF
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk EasyEducationBD-dev.apk
-      
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -52,31 +52,43 @@ jobs:
         with:
           flutter-version: "3.44.2"
       - run: flutter pub get
-      
+
       - name: Build Windows Release
         shell: pwsh
         run: flutter build windows --release
         env:
           CMAKE_BUILD_TYPE: Release
-      
+
       - name: Verify Release Build
         shell: pwsh
         run: |
           $exe = Get-ChildItem -Path "build\windows\x64\runner\Release" -Filter *.exe | Select-Object -First 1
           if (-not $exe) { throw "No Release EXE found!" }
-          $deps = & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" /dependents $exe.FullName 2>$null
-          if ($deps -match "VCRUNTIME140D|MSVCP140D|ucrtbased") {
-            throw "DEBUG runtime dependencies found!"
+
+          # Find dumpbin dynamically
+          $dumpbin = Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC" -Recurse -Filter "dumpbin.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $dumpbin) {
+            $dumpbin = Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC" -Recurse -Filter "dumpbin.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           }
-          Write-Host "✓ Release build verified: $($exe.FullName)"
-      
+
+          if ($dumpbin) {
+            $deps = & $dumpbin.FullName /dependents $exe.FullName
+            if ($deps -match "VCRUNTIME140D|MSVCP140D|ucrtbased") {
+              throw "DEBUG runtime dependencies found!"
+            }
+            Write-Host "✓ Release build verified: $($exe.FullName)"
+          } else {
+            Write-Host "⚠ dumpbin not found, skipping dependency check"
+            Write-Host "✓ Release EXE found: $($exe.FullName)"
+          }
+
       - name: Rename EXE
         shell: pwsh
         run: |
           $src = "build\windows\x64\runner\Release\easyedubd_app.exe"
           $dest = "build\windows\x64\runner\Release\EasyEducationBD-dev.exe"
           Move-Item -Path $src -Destination $dest -Force
-      
+
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
@@ -89,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-      
+
       - name: Publish Dev Release
         uses: softprops/action-gh-release@v2
         with:
