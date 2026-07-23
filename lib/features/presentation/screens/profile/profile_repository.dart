@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +15,11 @@ class ProfileRepository {
         .from('profiles')
         .select()
         .eq('id', id)
-        .maybeSingle();
+        .maybeSingle()
+        .timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => throw TimeoutException('Profile fetch timeout'),
+        );
 
     if (data == null) return null;
 
@@ -25,7 +31,11 @@ class ProfileRepository {
         .from('profiles')
         .upsert(profile.toUpsertJson(), onConflict: 'id')
         .select()
-        .single();
+        .single()
+        .timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => throw TimeoutException('Profile upsert timeout'),
+        );
 
     return Profile.fromJson(data);
   }

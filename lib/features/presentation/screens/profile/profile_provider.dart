@@ -27,6 +27,25 @@ final isAdminProvider = Provider<bool>((ref) {
   return profile.value?.role?.toLowerCase() == 'admin';
 });
 
+/// True when the signed-in user's profile has all required onboarding fields.
+final profileCompleteProvider = Provider<bool>((ref) {
+  final profile = ref.watch(currentProfileProvider).value;
+  if (profile == null) return false;
+
+  final fields = [
+    profile.fullName,
+    profile.phone,
+    profile.currentLevel,
+    profile.institute,
+    profile.department,
+    profile.session,
+    profile.currentYear,
+    profile.gender,
+  ];
+
+  return fields.every((field) => field != null && field.trim().isNotEmpty);
+});
+
 class ProfileController extends AsyncNotifier<Profile?> {
   late final ProfileRepository _repository;
 

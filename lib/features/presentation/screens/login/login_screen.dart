@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/providers/auth_notifier.dart';
 import 'package:easyedubd_app/core/startup/startup_controller.dart';
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
@@ -109,6 +110,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context.go('/device-pending');
       case AppStartupState.blockedDevice:
         context.go('/device-blocked');
+      case AppStartupState.profileIncomplete:
+        context.go('/profile-onboarding');
       case AppStartupState.unauthenticated:
       case AppStartupState.loading:
         break;
@@ -120,6 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context);
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
+    final isOffline = ref.watch(isOfflineProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -133,6 +137,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Offline warning
+                    if (isOffline)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.wifi_off_rounded,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'No internet connection. Please check your network.',
+                                style: TextStyle(color: Colors.red.shade800),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (isOffline) const SizedBox(height: 16),
+
                     // App logo
                     Image.asset(
                       'assets/icons/eeb-logo.png', //assets/icons/logo.png
@@ -216,7 +249,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _passwordController,
                       obscureText: true,
                       textInputAction: TextInputAction.done,
-                      onFieldSubmitted: isLoading ? null : (_) => _signIn(),
+                      onFieldSubmitted: isLoading || isOffline ? null : (_) => _signIn(),
                       decoration: const InputDecoration(
                         labelText: 'Password',
                         prefixIcon: Icon(Icons.lock_outline),
@@ -235,15 +268,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     SizedBox(
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : _signIn,
+                        onPressed: (isLoading || isOffline)
+                            ? null
+                            : _signIn,
                         child: isLoading
-                            ? const SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text('Signing in...'),
+                                ],
                               )
                             : const Text(
                                 'Sign In',
@@ -276,7 +318,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     SizedBox(
                       height: 48,
                       child: OutlinedButton.icon(
-                        onPressed: isLoading
+                        onPressed: (isLoading || isOffline)
                             ? null
                             : () async {
                                 setState(() => _errorMessage = null);
@@ -319,13 +361,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     context.go('/device-pending');
                                   case AppStartupState.blockedDevice:
                                     context.go('/device-blocked');
+                                  case AppStartupState.profileIncomplete:
+                                    context.go('/profile-onboarding');
                                   case AppStartupState.unauthenticated:
                                   case AppStartupState.loading:
                                     break;
                                 }
                               },
                         icon: const Icon(Icons.g_mobiledata_rounded),
-                        label: const Text('Continue with Google'),
+                        label: Text(isLoading ? 'Signing in...' : 'Continue with Google'),
                       ),
                     ),
                   ],

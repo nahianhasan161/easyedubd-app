@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EnrollmentRepository {
@@ -13,54 +14,57 @@ class EnrollmentRepository {
 
     final Set<int> courseIds = {};
 
-    // DIRECT COURSE ENROLLMENTS
     final courseEnrollments = await _supabase
         .from('enrollments')
         .select('course_id')
         .eq('profile_id', user.id)
         .eq('status', 'active')
-        .not('course_id', 'is', null);
+        .not('course_id', 'is', null)
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => throw TimeoutException('Course enrollments timeout'),
+        );
 
     for (final row in courseEnrollments) {
       final id = row['course_id'];
       if (id != null) {
-        courseIds.add((id as num).toInt()); // ✅ FIX
+        courseIds.add((id as num).toInt());
       }
     }
 
-    // BUNDLE ENROLLMENTS
     final bundleEnrollments = await _supabase
         .from('enrollments')
         .select('bundle_id')
         .eq('profile_id', user.id)
         .eq('status', 'active')
-        .not('bundle_id', 'is', null);
-    /* debugPrint('🔥 bundleEnrollments RAW: $bundleEnrollments'); */
+        .not('bundle_id', 'is', null)
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => throw TimeoutException('Bundle enrollments timeout'),
+        );
+
     final bundleIds = bundleEnrollments
         .map((e) => e['bundle_id'])
         .where((id) => id != null)
         .map((id) => (id as num).toInt())
         .toList();
-    /*  debugPrint('📦 extracted bundleIds: $bundleIds'); */
-    if (bundleIds.isEmpty) {
-      /*  debugPrint('⚠️ No bundle IDs found → skipping bundle course fetch'); */
-    } else {
-      /* debugPrint('🚀 Fetching bundle courses for: $bundleIds'); */
-    }
+
     if (bundleIds.isNotEmpty) {
       final bundleCourses = await _supabase
           .from('bundle_courses')
           .select('course_id')
-          .inFilter('bundle_id', bundleIds);
+          .inFilter('bundle_id', bundleIds)
+          .timeout(
+            const Duration(seconds: 8),
+            onTimeout: () => throw TimeoutException('Bundle courses timeout'),
+          );
 
       for (final row in bundleCourses) {
-        debugPrint('➡️ row: $row');
         final id = row['course_id'];
         if (id != null) {
-          courseIds.add((id as num).toInt()); // ✅ FIX
+          courseIds.add((id as num).toInt());
         }
       }
-      /* debugPrint('✅ FINAL courseIds AFTER BUNDLE: $courseIds'); */
     }
 
     return courseIds;

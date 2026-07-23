@@ -184,7 +184,7 @@ class CourseDetailsScreen extends ConsumerWidget {
                                                 "${lesson.duration.inMinutes} min",
                                               ),
                                             ],
-                                            if (lesson.videoId.isEmpty) ...[
+                                            if (canWatch && lesson.videoId.isEmpty) ...[
                                               Container(
                                                 padding: const EdgeInsets.symmetric(
                                                   horizontal: 8,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easyedubd_app/core/device/device_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,14 +29,15 @@ class AuthController extends AsyncNotifier<Session?> {
       final response = await supabase.auth.signInWithPassword(
         email: email,
         password: password,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('Login timed out. Please check your connection.'),
       );
 
       state = AsyncData(response.session);
     } catch (e, st) {
       debugPrint("========== LOGIN ERROR ==========");
-
       debugPrint(e.toString());
-
       debugPrintStack(stackTrace: st);
 
       state = AsyncError(e, st);

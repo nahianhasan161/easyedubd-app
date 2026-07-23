@@ -106,13 +106,25 @@ class _UserDevicesScreenState extends ConsumerState<UserDevicesScreen> {
                     Center(child: CircularProgressIndicator()),
                   ],
                 ),
-                error: (e, _) => ListView(
+                 error: (e, _) => ListView(
                   children: [
                     const SizedBox(height: 40),
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text('Error: $e'),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                            const SizedBox(height: 16),
+                            Text('Error: $e'),
+                            const SizedBox(height: 20),
+                            FilledButton.icon(
+                              onPressed: _refresh,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

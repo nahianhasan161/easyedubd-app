@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,7 +18,6 @@ class DeviceService {
 
   static const _installationKey = 'installation_id';
 
-  /// 1. Persistent installation ID
   Future<String> getInstallationId() async {
     final existing = await _storage.read(key: _installationKey);
 
@@ -32,10 +32,12 @@ class DeviceService {
     return newId;
   }
 
-  /// 2. Full device info (MAIN METHOD YOU WILL USE)
   Future<DeviceInfoModel> getDeviceInfo() async {
     final installationId = await getInstallationId();
-    final packageInfo = await PackageInfo.fromPlatform();
+    final packageInfo = await PackageInfo.fromPlatform().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => throw TimeoutException('PackageInfo timeout'),
+    );
 
     String raw = '';
     String model = '';
@@ -47,7 +49,10 @@ class DeviceService {
         : model;
 
     if (Platform.isAndroid) {
-      final info = await _deviceInfo.androidInfo;
+      final info = await _deviceInfo.androidInfo.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw TimeoutException('Android device info timeout'),
+      );
 
       model = info.model;
       manufacturer = info.manufacturer;
@@ -65,7 +70,10 @@ class DeviceService {
     }
 
     if (Platform.isIOS) {
-      final info = await _deviceInfo.iosInfo;
+      final info = await _deviceInfo.iosInfo.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw TimeoutException('iOS device info timeout'),
+      );
 
       model = info.utsname.machine;
       manufacturer = "Apple";
@@ -79,7 +87,10 @@ class DeviceService {
     }
 
     if (Platform.isWindows) {
-      final info = await _deviceInfo.windowsInfo;
+      final info = await _deviceInfo.windowsInfo.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw TimeoutException('Windows device info timeout'),
+      );
 
       model = info.computerName;
       manufacturer = "Microsoft";
@@ -89,7 +100,10 @@ class DeviceService {
     }
 
     if (Platform.isMacOS) {
-      final info = await _deviceInfo.macOsInfo;
+      final info = await _deviceInfo.macOsInfo.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw TimeoutException('MacOS device info timeout'),
+      );
 
       model = info.modelName;
       manufacturer = "Apple";
@@ -98,7 +112,6 @@ class DeviceService {
       raw = [info.systemGUID ?? '', info.modelName, info.osRelease].join('|');
     }
 
-    // 3. Fingerprint (hashed)
     final fingerprint = sha256.convert(utf8.encode(raw)).toString();
 
     return DeviceInfoModel(
@@ -113,7 +126,6 @@ class DeviceService {
     );
   }
 
-  /// 3. Clear device (for logout/reset/testing)
   Future<void> clearInstallation() async {
     await _storage.delete(key: _installationKey);
   }

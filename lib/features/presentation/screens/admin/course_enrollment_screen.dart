@@ -182,13 +182,25 @@ class _CourseEnrollmentScreenState extends ConsumerState<CourseEnrollmentScreen>
                           Center(child: CircularProgressIndicator()),
                         ],
                       ),
-                      error: (e, _) => ListView(
+                       error: (e, _) => ListView(
                         children: [
                           const SizedBox(height: 40),
                           Center(
                             child: Padding(
                               padding: const EdgeInsets.all(16),
-                              child: Text('Error: $e'),
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                                  const SizedBox(height: 16),
+                                  Text('Error: $e'),
+                                  const SizedBox(height: 20),
+                                  FilledButton.icon(
+                                    onPressed: _refresh,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -371,9 +383,27 @@ class _UserPickerDialogState extends ConsumerState<_UserPickerDialog> {
                     shrinkWrap: true,
                     children: [
                       const SizedBox(height: 24),
-                      Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('Error: $e'),
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.wifi_off_rounded, size: 36, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              Text('Error: $e'),
+                              const SizedBox(height: 12),
+                              FilledButton.icon(
+                                onPressed: () {
+                                  if (_term.isNotEmpty) {
+                                    setState(() {});
+                                  }
+                                },
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),

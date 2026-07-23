@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +24,8 @@ class CourseListScreen extends ConsumerStatefulWidget {
 
 class _CourseListScreenState extends ConsumerState<CourseListScreen> {
   final ScrollController _scrollController = ScrollController();
+  Timer? _loadRetryTimer;
+  bool _showLoadRetry = false;
 
   late String selectedYear;
   late String selectedSubject;
@@ -44,22 +48,42 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
         courseListProvider(widget.enrolledOnly).notifier,
       );
 
-      ref
-          .read(enrolledCourseIdsProvider)
-          .whenData((ids) => notifier.setEnrolledCourseIds(ids));
-
-      if (!widget.enrolledOnly) {
-        notifier.loadInitial();
+      final idsAsync = ref.read(enrolledCourseIdsProvider);
+      if (idsAsync.hasValue) {
+        notifier.setEnrolledCourseIds(idsAsync.value ?? {});
+      } else {
+        idsAsync.whenData((ids) => notifier.setEnrolledCourseIds(ids));
       }
     });
   }
 
   @override
   void dispose() {
+    _loadRetryTimer?.cancel();
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
     super.dispose();
+  }
+
+  void _resetLoadRetry() {
+    _loadRetryTimer?.cancel();
+    _loadRetryTimer = null;
+    _showLoadRetry = false;
+  }
+
+  void _startLoadTimerIfNeeded() {
+    if (_loadRetryTimer != null) return;
+    if (!mounted) return;
+    final courseList = ref.read(courseListProvider(widget.enrolledOnly));
+    if (!courseList.isInitialLoading) return;
+
+    _showLoadRetry = false;
+    _loadRetryTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted) {
+        setState(() => _showLoadRetry = true);
+      }
+    });
   }
 
   void _onScroll() {
@@ -236,19 +260,27 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
   }
 
   Future<void> _refreshCourses() async {
-    // For "My Courses", also re-fetch the enrollment set so a newly enrolled
-    // course appears after pull-to-refresh (not just the cached ids).
     if (widget.enrolledOnly) {
       ref.invalidate(enrolledCourseIdsProvider);
     }
     await ref
         .read(courseListProvider(widget.enrolledOnly).notifier)
         .loadInitial();
+
+    if (mounted) {
+      _startLoadTimerIfNeeded();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final courseList = ref.watch(courseListProvider(widget.enrolledOnly));
+
+    if (courseList.isInitialLoading) {
+      _startLoadTimerIfNeeded();
+    } else {
+      _resetLoadRetry();
+    }
 
     ref.listen(enrolledCourseIdsProvider, (previous, next) {
       next.whenData(
@@ -257,6 +289,72 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
             .setEnrolledCourseIds(ids),
       );
     });
+
+    final loadingBody = RefreshIndicator(
+      onRefresh: _refreshCourses,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: _showLoadRetry ? 7 : 6,
+        itemBuilder: (context, index) {
+          if (index < 6) {
+            return const CourseCardSkeleton();
+          }
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                constraints: const BoxConstraints(maxWidth: 320),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.wifi_off_rounded,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Taking too long?',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please check your connection',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: () {
+                        _refreshCourses();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
 
     final listChild = courseList.courses.isEmpty
         ? ListView(
@@ -268,8 +366,6 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
           )
         : ListView.builder(
             controller: _scrollController,
-            // AlwaysScrollable lets pull-to-refresh work even when the list is
-            // short (e.g. a single enrolled course) and can't otherwise overscroll.
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount:
                 courseList.courses.length + (courseList.isLoadingMore ? 1 : 0),
@@ -284,7 +380,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
               final course = courseList.courses[index];
               final isEnrolled =
                   widget.enrolledOnly ||
-                  courseList.enrolledCourseIds?.contains(course.id) == true;
+                      courseList.enrolledCourseIds?.contains(course.id) == true;
 
               return CourseCard(
                 course: course,
@@ -299,46 +395,47 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
             },
           );
 
+    final child = courseList.isInitialLoading
+        ? loadingBody
+        : courseList.error != null
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  const SizedBox(height: 120),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.cloud_off_outlined,
+                          size: 48,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Could not load courses.\nPlease check your connection and try again.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () => ref
+                              .read(courseListProvider(widget.enrolledOnly)
+                                  .notifier)
+                              .loadInitial(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : listChild;
+
     final body = RefreshIndicator(
       onRefresh: _refreshCourses,
-      child: courseList.isInitialLoading
-          ? const Center(child: CircularProgressIndicator())
-          : courseList.error != null
-          // Scrollable so pull-to-refresh still works from the error state.
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                const SizedBox(height: 120),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.cloud_off_outlined,
-                        size: 48,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Could not load courses.\nPlease check your connection and try again.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: () => ref
-                            .read(courseListProvider(widget.enrolledOnly)
-                                .notifier)
-                            .loadInitial(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          : listChild,
+      child: child,
     );
 
     final content = Column(

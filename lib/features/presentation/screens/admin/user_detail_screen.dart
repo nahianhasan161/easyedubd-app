@@ -7,6 +7,7 @@ import 'package:easyedubd_app/features/presentation/screens/admin/user_repositor
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
+import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -188,7 +189,22 @@ class _DevicesTab extends ConsumerWidget {
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Error: $e'),
+                child: Column(
+                  children: [
+                    const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text('Error: $e'),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        ref.invalidate(userDevicesProvider(DevicesQuery(userId: userId, page: 1)));
+                        await ref.read(userDevicesProvider(DevicesQuery(userId: userId, page: 1)).future);
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -497,6 +513,38 @@ class _EnrollmentsTab extends ConsumerWidget {
     );
   }
 
+  Future<void> _removeEnrollment(BuildContext context, WidgetRef ref, int enrollmentId) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Remove Enrollment',
+      content: 'Are you sure you want to remove this user from the course?',
+      confirmLabel: 'Remove',
+      isDestructive: true,
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref
+          .read(adminCourseRepositoryProvider)
+          .removeEnrollment(enrollmentId);
+      ref.invalidate(enrollmentsProvider(EnrollmentsQuery(page: 1, profileId: userId)));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enrollment removed')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not remove enrollment: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final enrollmentsAsync = ref.watch(
@@ -524,7 +572,22 @@ class _EnrollmentsTab extends ConsumerWidget {
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Error: $e'),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text('Error: $e'),
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
+                        onPressed: () async {
+                          ref.invalidate(enrollmentsProvider(EnrollmentsQuery(page: 1, profileId: userId)));
+                          await ref.read(enrollmentsProvider(EnrollmentsQuery(page: 1, profileId: userId)).future);
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -550,18 +613,28 @@ class _EnrollmentsTab extends ConsumerWidget {
                   subtitle: Text(
                     'Enrolled: ${enrollment.createdAt.toString().split(' ')[0]} · ${isActive ? 'Active' : 'Expired'}',
                   ),
-                  trailing: Chip(
-                    label: Text(isActive ? 'Active' : 'Expired'),
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: isActive
-                        ? Colors.green.withValues(alpha: 0.15)
-                        : Colors.red.withValues(alpha: 0.15),
-                    labelStyle: TextStyle(
-                      color: isActive ? Colors.green : Colors.red,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () => _removeEnrollment(context, ref, enrollment.id),
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        tooltip: 'Remove enrollment',
+                      ),
+                      Chip(
+                        label: Text(isActive ? 'Active' : 'Expired'),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: isActive
+                            ? Colors.green.withValues(alpha: 0.15)
+                            : Colors.red.withValues(alpha: 0.15),
+                        labelStyle: TextStyle(
+                          color: isActive ? Colors.green : Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },

@@ -45,7 +45,7 @@ class _AdminCourseManagementScreenState
     final yearController = TextEditingController(text: course?.year ?? '');
     final subjectController = TextEditingController(text: course?.subject ?? '');
     final priceController = TextEditingController(
-      text: course?.price == null ? '' : (course!.price! * 100).toInt().toString(),
+      text: course?.price == null ? '' : course!.price!.toStringAsFixed(0),
     );
     final positionController = TextEditingController(
       text: (course?.position ?? 0).toString(),
@@ -106,7 +106,7 @@ class _AdminCourseManagementScreenState
                 if (!isFree)
                   TextField(
                     controller: priceController,
-                    decoration: const InputDecoration(labelText: 'Price (cents)'),
+                    decoration: const InputDecoration(labelText: 'Price (৳)'),
                     keyboardType: TextInputType.number,
                   ),
                 TextField(
@@ -131,7 +131,8 @@ class _AdminCourseManagementScreenState
                 }
 
                 try {
-                  final price = int.tryParse(priceController.text.trim());
+                  final priceText = priceController.text.trim();
+                  final price = priceText.isEmpty ? null : double.tryParse(priceText);
                   final payload = {
                     'title': title,
                     'description': descController.text.trim(),
@@ -139,7 +140,7 @@ class _AdminCourseManagementScreenState
                     'year': yearController.text.trim(),
                     'subject': subjectController.text.trim(),
                     'is_free': isFree,
-                    'price': isFree ? null : (price ?? 0).toDouble() / 100,
+                    'price': isFree || price == null ? null : price * 100,
                     'position': int.tryParse(positionController.text.trim()) ?? 0,
                     'status': 'published',
                   };
@@ -282,7 +283,19 @@ class _AdminCourseManagementScreenState
                           Center(
                             child: Padding(
                               padding: const EdgeInsets.all(16),
-                              child: Text('Error: $e'),
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                                  const SizedBox(height: 16),
+                                  Text('Error: $e'),
+                                  const SizedBox(height: 20),
+                                  FilledButton.icon(
+                                    onPressed: _refresh,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

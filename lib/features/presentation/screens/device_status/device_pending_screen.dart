@@ -91,6 +91,10 @@ class DevicePendingScreen extends ConsumerWidget {
                         context.go('/device-blocked');
                         break;
 
+                      case AppStartupState.profileIncomplete:
+                        context.go('/profile-onboarding');
+                        break;
+
                       case AppStartupState.unauthenticated:
                         context.go('/');
                         break;

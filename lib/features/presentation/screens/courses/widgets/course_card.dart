@@ -398,3 +398,65 @@ class _Tag extends StatelessWidget {
     );
   }
 }
+
+class CourseCardSkeleton extends StatelessWidget {
+  const CourseCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Container(color: Colors.grey.shade300),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _ShimmerBox(height: 20, width: double.infinity),
+                const SizedBox(height: 10),
+                const _ShimmerBox(height: 14, width: 120),
+                const SizedBox(height: 10),
+                const _ShimmerBox(height: 14, width: 160),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShimmerBox extends StatelessWidget {
+  const _ShimmerBox({
+    required this.width,
+    required this.height,
+    this.borderRadius = 4,
+  });
+
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        color: Colors.grey.shade300,
+      ),
+    );
+  }
+}

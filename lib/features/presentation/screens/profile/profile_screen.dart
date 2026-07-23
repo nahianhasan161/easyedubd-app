@@ -16,15 +16,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _currentLevelController = TextEditingController();
   final _instituteController = TextEditingController();
   final _departmentController = TextEditingController();
+  final _customDepartmentController = TextEditingController();
   final _sessionController = TextEditingController();
   final _currentYearController = TextEditingController();
   final _avatarUrlController = TextEditingController();
 
   bool _loaded = false;
   bool _showAvatarPicker = false;
+  bool _showCustomDepartment = false;
   String _gender = 'Male';
 
   static const List<String> _demoAvatars = [
@@ -37,9 +41,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void dispose() {
     _fullNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
     _currentLevelController.dispose();
     _instituteController.dispose();
     _departmentController.dispose();
+    _customDepartmentController.dispose();
     _sessionController.dispose();
     _currentYearController.dispose();
     _avatarUrlController.dispose();
@@ -50,13 +57,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_loaded) return;
     _loaded = true;
     _fullNameController.text = profile.fullName ?? '';
+    _emailController.text = profile.email ?? '';
+    _phoneController.text = profile.phone ?? '';
     _currentLevelController.text = profile.currentLevel ?? '';
     _instituteController.text = profile.institute ?? '';
     _departmentController.text = profile.department ?? '';
+    _customDepartmentController.text = '';
     _sessionController.text = profile.session ?? '';
     _currentYearController.text = profile.currentYear ?? '';
     _avatarUrlController.text = profile.avatarUrl ?? '';
     _gender = profile.gender ?? 'Male';
+
+    final dept = profile.department;
+    final presetOptions = const [
+      'Chemistry',
+      'Mathematics',
+      'Physics',
+      'Zoology',
+      'Botany',
+    ];
+    _showCustomDepartment = dept != null && !presetOptions.contains(dept);
+    if (_showCustomDepartment) {
+      _customDepartmentController.text = dept ?? '';
+    }
   }
 
   Future<void> _save() async {
@@ -68,18 +91,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Preserve the existing role so saving the profile can't change a
     // user's admin status (toUpsertJson would otherwise send role: null).
     final currentRole = ref.read(currentProfileProvider).value?.role;
+    final currentPhone = ref.read(currentProfileProvider).value?.phone;
+
+    final department = _showCustomDepartment
+        ? _customDepartmentController.text.trim()
+        : _departmentController.text.trim();
 
     final profile = Profile(
       id: id,
       fullName: _fullNameController.text.trim(),
       currentLevel: _currentLevelController.text.trim(),
       institute: _instituteController.text.trim(),
-      department: _departmentController.text.trim(),
+      department: department,
       session: _sessionController.text.trim(),
       currentYear: _currentYearController.text.trim(),
       avatarUrl: _avatarUrlController.text.trim(),
       gender: _gender,
       role: currentRole,
+      phone: currentPhone,
     );
 
     await ref.read(profileControllerProvider.notifier).save(profile);
@@ -118,7 +147,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text('Error: $e'),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () {
+                    ref.invalidate(currentProfileProvider);
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
         data: (profile) {
           if (profile != null) _populate(profile);
 
@@ -185,8 +233,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         },
                       ),
                     ),
-                  const SizedBox(height: 16),
+                   const SizedBox(height: 16),
                   _buildField(_fullNameController, 'Full Name', true),
+                  const SizedBox(height: 12),
+                  _buildReadOnlyField(_emailController.text, 'Email'),
+                  const SizedBox(height: 12),
+                  _buildReadOnlyField(_phoneController.text, 'Phone Number'),
                   const SizedBox(height: 12),
                   _buildDropdown(
                     controller: _currentLevelController,
@@ -199,17 +251,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildField(_instituteController, 'Institute', false),
+                   _buildField(_instituteController, 'Institute', false),
                   const SizedBox(height: 12),
-                  _buildDropdown(
-                    controller: _departmentController,
-                    label: 'Department',
-                    options: const [
-                      'Chemistry',
-                      'Mathematics',
-                      'Physics',
-                      'Zoology',
-                      'Botany',
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: _showCustomDepartment
+                            ? 'Other'
+                            : (_departmentController.text.isEmpty
+                                ? null
+                                : _departmentController.text),
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Department',
+                          border: OutlineInputBorder(),
+                        ),
+                        hint: const Text('Select'),
+                        items: const [
+                          DropdownMenuItem(value: 'Chemistry', child: Text('Chemistry')),
+                          DropdownMenuItem(value: 'Mathematics', child: Text('Mathematics')),
+                          DropdownMenuItem(value: 'Physics', child: Text('Physics')),
+                          DropdownMenuItem(value: 'Zoology', child: Text('Zoology')),
+                          DropdownMenuItem(value: 'Botany', child: Text('Botany')),
+                          DropdownMenuItem(value: 'Other', child: Text('Other')),
+                        ],
+                        onChanged: (selected) {
+                          setState(() {
+                            if (selected == 'Other') {
+                              _showCustomDepartment = true;
+                              _departmentController.text = 'Other';
+                            } else {
+                              _showCustomDepartment = false;
+                              _customDepartmentController.clear();
+                              if (selected != null) {
+                                _departmentController.text = selected;
+                              }
+                            }
+                          });
+                        },
+                      ),
+                      if (_showCustomDepartment) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _customDepartmentController,
+                          decoration: const InputDecoration(
+                            labelText: 'Custom Department',
+                            border: OutlineInputBorder(),
+                            hintText: 'Enter your department',
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          validator: (value) {
+                            if (_showCustomDepartment &&
+                                (value == null || value.trim().isEmpty)) {
+                              return 'Required';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -359,6 +459,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       validator: required
           ? (value) => value == null || value.trim().isEmpty ? 'Required' : null
           : null,
+    );
+  }
+
+  Widget _buildReadOnlyField(String value, String label) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      child: Text(
+        value.isNotEmpty ? value : 'Not set',
+        style: TextStyle(color: Colors.grey.shade700),
+      ),
     );
   }
 

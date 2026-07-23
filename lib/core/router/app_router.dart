@@ -12,6 +12,7 @@ import 'package:easyedubd_app/features/presentation/screens/device_status/device
 import 'package:easyedubd_app/features/presentation/screens/login/login_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/onboarding/missing_profile_onboarding_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
@@ -86,6 +87,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // never flashes. `value == null` covers the very first frames before the
       // AsyncNotifier has produced any data.
       if (startupState.isLoading || !startupState.hasValue) {
+        if (state.matchedLocation == '/dashboard') return null;
         return state.matchedLocation == '/splash' ? null : '/splash';
       }
 
@@ -117,8 +119,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       switch (status) {
+        case AppStartupState.profileIncomplete:
+          final profileState = ref.read(currentProfileProvider);
+          if (!profileState.isLoading && profileState.value != null && ref.read(profileCompleteProvider)) {
+            if (state.matchedLocation == '/dashboard') return null;
+            if (state.matchedLocation == '/profile') return null;
+            return '/dashboard';
+          }
+          if (state.matchedLocation == '/profile-onboarding') return null;
+          if (state.matchedLocation == '/dashboard') return null;
+          if (state.matchedLocation == '/profile') return null;
+          return '/profile-onboarding';
+
         case AppStartupState.authenticated:
-          final publicAuthRoutes = {'/', '/splash', '/onboarding'};
+          final publicAuthRoutes = {'/', '/splash', '/onboarding', '/profile-onboarding'};
 
           if (publicAuthRoutes.contains(state.matchedLocation)) {
             return '/dashboard';
@@ -330,6 +344,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
 
         builder: (context, state) => const OnboardingScreen(),
+      ),
+
+      GoRoute(
+        name: 'profile-onboarding',
+        path: '/profile-onboarding',
+
+        builder: (context, state) => const MissingProfileOnboardingScreen(),
       ),
 
       GoRoute(

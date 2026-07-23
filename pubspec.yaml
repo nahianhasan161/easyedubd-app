@@ -49,6 +49,7 @@ dependencies:
   device_info_plus: ^11.5.0
   url_launcher: ^6.3.1
   package_info_plus: ^8.3.1
+  connectivity_plus: ^6.1.4
 
   screen_protector: ^1.5.2
   crypto: ^3.0.6

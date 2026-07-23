@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:developer' as developer; // Required for the log() function
+import 'dart:developer' as developer;
 
 class CourseRepository {
   final SupabaseClient _supabase;
@@ -56,17 +58,17 @@ class CourseRepository {
             );
       }
 
-      final response = await ordered.range(offset, offset + limit - 1);
+      final response = await ordered.range(offset, offset + limit - 1).timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => throw TimeoutException('Course list fetch timeout'),
+      );
 
       /* print(const JsonEncoder.withIndent('  ').convert(response)); */
-      // The response is already a List<dynamic> from the Supabase SDK
       return (response as List<dynamic>)
           .map((json) => Course.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e, stackTrace) {
-      // Log the error (e.g., using logger package or print)
       developer.log(e.toString(), error: e, stackTrace: stackTrace);
-      // Return an empty list or rethrow depending on your error handling policy
       rethrow;
     }
   }
@@ -77,22 +79,24 @@ class CourseRepository {
           .from('course')
           .select('*')
           .eq('id', id)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(
+            const Duration(seconds: 8),
+            onTimeout: () => throw TimeoutException('Course detail fetch timeout'),
+          );
 
       if (courseJson == null) return null;
 
-      // Load chapters and lessons with plain (non-embedded) queries. The
-      // previous implementation embedded them via
-      // `chapter ( *, lesson (*) )`, which fails (RLS or ambiguous relation)
-      // and broke the entire details page even though the course itself is
-      // readable. Loading them separately means a chapter/lesson failure
-      // only drops the syllabus, never the page.
       try {
         final chaptersJson = await _supabase
             .from('chapter')
             .select('*')
             .eq('course_id', id)
-            .order('position', ascending: true);
+            .order('position', ascending: true)
+            .timeout(
+              const Duration(seconds: 8),
+              onTimeout: () => throw TimeoutException('Chapter fetch timeout'),
+            );
 
         final chapterIds = (chaptersJson as List)
             .map((c) => (c as Map<String, dynamic>)['id'])
@@ -105,7 +109,11 @@ class CourseRepository {
               .from('lesson')
               .select('*')
               .inFilter('chapter_id', chapterIds)
-              .order('position', ascending: true);
+              .order('position', ascending: true)
+              .timeout(
+                const Duration(seconds: 8),
+                onTimeout: () => throw TimeoutException('Lesson fetch timeout'),
+              );
 
           for (final l in lessonsJson as List) {
             final map = l as Map<String, dynamic>;
@@ -138,10 +146,6 @@ class CourseRepository {
     }
   }
 
-  /// Fetches only the courses whose ids are in [ids]. Used by "My Courses"
-  /// so enrolled courses are retrieved directly instead of paginating the
-  /// entire course list and filtering client-side (which misses enrolled
-  /// courses that aren't on the first page).
   Future<List<Course>> getCoursesByIds(
     List<int> ids, {
     bool includeChapters = false,
@@ -152,7 +156,11 @@ class CourseRepository {
       final response = await _supabase
           .from('course')
           .select(includeChapters ? '*, chapter ( *, lesson (*))' : '*')
-          .inFilter('id', ids);
+          .inFilter('id', ids)
+          .timeout(
+            const Duration(seconds: 8),
+            onTimeout: () => throw TimeoutException('Courses by IDs fetch timeout'),
+          );
 
       return (response as List<dynamic>)
           .map((json) => Course.fromJson(json as Map<String, dynamic>))
