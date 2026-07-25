@@ -20,6 +20,9 @@ class _MissingProfileOnboardingScreenState
   bool _isLoading = false;
   bool _showCustomDepartment = false;
   final TextEditingController _customDepartmentController = TextEditingController();
+  String? _phoneError;
+  String? _gender;
+  bool _genderInitialized = false;
 
   List<_ProfileStep> _steps = const [];
   bool _stepsInitialized = false;
@@ -154,6 +157,14 @@ class _MissingProfileOnboardingScreenState
         String() => '',
       };
 
+      if (def.key == 'gender') {
+        final allowed = const ['Male', 'Female', 'Others'];
+        final normalized = existingValue.trim();
+        if (!_genderInitialized) {
+          _gender = allowed.contains(normalized) ? normalized : null;
+        }
+      }
+
       if (def.key == 'department') {
         final presetOptions = const [
           'Chemistry',
@@ -262,6 +273,40 @@ class _MissingProfileOnboardingScreenState
   }
 
   Future<void> _onNext() async {
+    final step = _steps[_currentStep];
+    final value = step.controller.text.trim();
+
+    if (step.key == 'phone') {
+      final digits = value.replaceAll(RegExp(r'\D'), '');
+      if (digits.length != 11) {
+        setState(() {
+          _phoneError = 'Enter a valid 11-digit phone number';
+        });
+        return;
+      }
+      setState(() {
+        _phoneError = null;
+      });
+    } else if (step.key == 'gender') {
+      if (_gender == null || _gender!.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a gender'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    } else if (value.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${step.title} is required'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_currentStep < _steps.length - 1) {
       setState(() => _currentStep++);
     } else {
@@ -269,6 +314,8 @@ class _MissingProfileOnboardingScreenState
       for (final step in _steps) {
         if (step.key == 'department' && _showCustomDepartment) {
           values[step.field] = _customDepartmentController.text.trim();
+        } else if (step.key == 'gender') {
+          values[step.field] = _gender?.trim() ?? '';
         } else {
           values[step.field] = step.controller.text.trim();
         }
@@ -279,6 +326,9 @@ class _MissingProfileOnboardingScreenState
 
   void _onBack() {
     if (_currentStep > 0) {
+      if (_steps[_currentStep].key == 'phone') {
+        setState(() => _phoneError = null);
+      }
       setState(() => _currentStep--);
     } else {
       context.go('/dashboard');
@@ -341,12 +391,12 @@ class _MissingProfileOnboardingScreenState
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(_currentStep == 0
-              ? Icons.close
-              : Icons.arrow_back),
-          onPressed: _onBack,
-        ),
+        leading: _currentStep == 0
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _onBack,
+              ),
       ),
       body: SafeArea(
         child: Padding(
@@ -471,16 +521,82 @@ class _MissingProfileOnboardingScreenState
                             onChanged: (_) {},
                           ),
                         ],
-                      ] else
-                        TextField(
-                          key: ValueKey('${step.key}_field'),
-                          controller: step.controller,
-                          keyboardType: step.inputType,
-                          decoration: InputDecoration(
-                            hintText: step.hint,
-                            border: const OutlineInputBorder(),
+                      ] else if (step.key == 'gender') ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          step.question,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.grey.shade700,
                           ),
-                          textCapitalization: TextCapitalization.words,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _GenderOption(
+                                label: 'Male',
+                                icon: Icons.male,
+                                selected: _gender == 'Male',
+                                onTap: () => setState(() {
+                                  _gender = 'Male';
+                                  _genderInitialized = true;
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _GenderOption(
+                                label: 'Female',
+                                icon: Icons.female,
+                                selected: _gender == 'Female',
+                                onTap: () => setState(() {
+                                  _gender = 'Female';
+                                  _genderInitialized = true;
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _GenderOption(
+                                label: 'Others',
+                                icon: Icons.transgender,
+                                selected: _gender == 'Others',
+                                onTap: () => setState(() {
+                                  _gender = 'Others';
+                                  _genderInitialized = true;
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              key: ValueKey('${step.key}_field'),
+                              controller: step.controller,
+                              keyboardType: step.inputType,
+                              decoration: InputDecoration(
+                                hintText: step.hint,
+                                border: const OutlineInputBorder(),
+                                errorText: step.key == 'phone' ? _phoneError : null,
+                              ),
+                              textCapitalization: TextCapitalization.words,
+                            ),
+                            if (step.key == 'phone')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  'Enter 11-digit phone number',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                      ],
                   ),
@@ -581,4 +697,55 @@ class _ProfileStep {
     this.options,
     required this.controller,
   });
+}
+
+class _GenderOption extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _GenderOption({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? primary : Colors.grey[300]!,
+            width: selected ? 2 : 1,
+          ),
+        color: selected ? primary.withValues(alpha: 0.08) : null,
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: selected ? primary : Colors.grey[600],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: selected ? primary : Colors.grey[700],
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    ),
+    );
+  }
 }

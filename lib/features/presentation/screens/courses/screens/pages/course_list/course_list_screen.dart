@@ -54,6 +54,8 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
       } else {
         idsAsync.whenData((ids) => notifier.setEnrolledCourseIds(ids));
       }
+
+      notifier.loadInitial();
     });
   }
 

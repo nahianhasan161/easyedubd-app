@@ -65,14 +65,12 @@ class CourseListNotifier extends Notifier<CourseListState> {
   @override
   CourseListState build() {
     _repository = ref.read(courseRepositoryProvider);
-    return const CourseListState();
+    return const CourseListState(isInitialLoading: true);
   }
 
   static const int pageSize = 10;
 
   Future<void> loadInitial() async {
-    if (state.isInitialLoading) return;
-
     state = state.copyWith(
       isInitialLoading: true,
       isLoadingMore: false,

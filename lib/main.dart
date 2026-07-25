@@ -13,37 +13,38 @@ import 'package:posthog_flutter/posthog_flutter.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final posthogFuture = Posthog().setup(
-    PostHogConfig(
-      'phc_nqsCr2zuWpeaysXty3k5txWDCNakM8obCumheGb7qKTD',
-    )
-      ..host = 'https://us.i.posthog.com'
-      ..debug = true
-      ..captureApplicationLifecycleEvents = true
-      ..sessionReplay = true
-      ..sessionReplayConfig.maskAllTexts = false
-      ..sessionReplayConfig.maskAllImages = false
-      ..sessionReplayConfig.throttleDelay = const Duration(milliseconds: 1000),
-  ).timeout(
+  await dotenv.load(fileName: ".env").timeout(
     const Duration(seconds: 5),
     onTimeout: () => Future<void>.value(),
   );
+
+  final posthogApiKey = dotenv.env['POSTHOG_API_KEY'];
+  final posthogFuture = Posthog()
+      .setup(
+        PostHogConfig(posthogApiKey!)
+          ..host = 'https://us.i.posthog.com'
+          ..debug = true
+          ..captureApplicationLifecycleEvents = true
+          ..sessionReplay = true
+          ..sessionReplayConfig.maskAllTexts = false
+          ..sessionReplayConfig.maskAllImages = false
+          ..sessionReplayConfig.throttleDelay = const Duration(
+            milliseconds: 1000,
+          )
+          ..errorTrackingConfig.captureFlutterErrors = true
+          ..errorTrackingConfig.capturePlatformDispatcherErrors = true,
+      )
+      .timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => Future<void>.value(),
+      );
 
   final screenSecurityFuture = ScreenSecurityService.enable().timeout(
     const Duration(seconds: 5),
     onTimeout: () => Future<void>.value(),
   );
 
-  final dotenvFuture = dotenv.load(fileName: ".env").timeout(
-    const Duration(seconds: 5),
-    onTimeout: () => Future<void>.value(),
-  );
-
-  await Future.wait([
-    posthogFuture,
-    screenSecurityFuture,
-    dotenvFuture,
-  ]);
+  await Future.wait([posthogFuture, screenSecurityFuture]);
 
   final supabaseUrl = dotenv.env['SUPABASE_URL'];
   final supabaseKey = dotenv.env['SUPABASE_PUBLISHABLE_KEY'];
