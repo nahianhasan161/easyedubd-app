@@ -84,6 +84,8 @@ class Profile {
       'current_year': currentYear,
       'gender': gender,
       'role': role,
+      'email': email,
+      'phone': phone,
     };
   }
 

@@ -229,33 +229,18 @@ class _MissingProfileOnboardingScreenState
           : trimmedDepartment;
 
       final updated = (profile ?? const Profile(id: '')).copyWith(
-        fullName: onBoardingFields.contains('fullName')
-            ? values['fullName']?.trim()
-            : profile?.fullName,
-        phone: onBoardingFields.contains('phone')
-            ? values['phone']?.trim()
-            : profile?.phone,
-        currentLevel: onBoardingFields.contains('currentLevel')
-            ? values['currentLevel']?.trim()
-            : profile?.currentLevel,
-        institute: onBoardingFields.contains('institute')
-            ? values['institute']?.trim()
-            : profile?.institute,
-        department: onBoardingFields.contains('department')
-            ? departmentValue
-            : profile?.department,
-        session: onBoardingFields.contains('session')
-            ? values['session']?.trim()
-            : profile?.session,
-        currentYear: onBoardingFields.contains('currentYear')
-            ? values['currentYear']?.trim()
-            : profile?.currentYear,
-        gender: onBoardingFields.contains('gender')
-            ? values['gender']?.trim()
-            : profile?.gender,
+        fullName: values['fullName']?.trim() ?? profile?.fullName,
+        phone: values['phone']?.trim() ?? profile?.phone,
+        currentLevel: values['currentLevel']?.trim() ?? profile?.currentLevel,
+        institute: values['institute']?.trim() ?? profile?.institute,
+        department: values['department']?.trim() ?? profile?.department,
+        session: values['session']?.trim() ?? profile?.session,
+        currentYear: values['currentYear']?.trim() ?? profile?.currentYear,
+        gender: values['gender']?.trim() ?? profile?.gender,
       );
 
       await ref.read(profileControllerProvider.notifier).save(updated);
+      await ref.read(currentProfileProvider.future);
       await ref.read(startupProvider.notifier).initialize();
       if (mounted) {
         context.go('/dashboard');
