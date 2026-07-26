@@ -95,58 +95,70 @@ class CourseListNotifier extends Notifier<CourseListState> {
     await _fetchPage(state.page + 1);
   }
 
-  Future<void> _fetchPage(int page) async {
-    try {
-      List<Course> fetched;
+Future<void> _fetchPage(int page) async {
+     try {
+       if (enrolledOnly) {
+         final ids = state.enrolledCourseIds;
+         final fetched = (ids == null || ids.isEmpty)
+             ? <Course>[]
+             : await _repository.getCoursesByIds(
+                 ids.toList(),
+                 includeChapters: true,
+               );
 
-      if (enrolledOnly) {
-        // Fetch the enrolled courses directly by id (server-side) so they are
-        // always retrieved regardless of their position in the full list.
-        final ids = state.enrolledCourseIds;
-        fetched = (ids == null || ids.isEmpty)
-            ? []
-            : await _repository.getCoursesByIds(
-                ids.toList(),
-                includeChapters: true,
-              );
-      } else {
-        fetched = await _repository.getCourses(
-          limit: pageSize,
-          offset: page * pageSize,
-          year: state.year,
-          subject: state.subject,
-          type: state.type,
-          includeChapters: false,
-        );
+         final courses = page == 0 ? fetched : [...state.courses, ...fetched];
 
-        // Hide enrolled courses from the "All Courses" tab so they only
-        // appear under "My Courses".
-        final enrolled = state.enrolledCourseIds;
-        if (enrolled != null && enrolled.isNotEmpty) {
-          fetched =
-              fetched.where((course) => !enrolled.contains(course.id)).toList();
-        }
-      }
+         state = state.copyWith(
+           courses: courses,
+           page: page,
+           hasMore: false, // No pagination for enrolled-only tab
+           isInitialLoading: false,
+           isLoadingMore: false,
+           error: null,
+         );
+       } else {
+         // Fetch one extra item to correctly determine if there are more pages
+         // after filtering out enrolled courses
+         final rawFetched = await _repository.getCourses(
+           limit: pageSize + 1,
+           offset: page * pageSize,
+           year: state.year,
+           subject: state.subject,
+           type: state.type,
+           includeChapters: false,
+         );
 
-      final courses = page == 0 ? fetched : [...state.courses, ...fetched];
+         // Hide enrolled courses from the "All Courses" tab so they only
+         // appear under "My Courses".
+         final enrolled = state.enrolledCourseIds;
+         final fetched = enrolled != null && enrolled.isNotEmpty
+             ? rawFetched.where((course) => !enrolled.contains(course.id)).toList()
+             : rawFetched;
 
-      state = state.copyWith(
-        courses: courses,
-        page: page,
-        // "My Courses" is fetched in full (no pagination).
-        hasMore: !enrolledOnly && fetched.length == pageSize,
-        isInitialLoading: false,
-        isLoadingMore: false,
-        error: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isInitialLoading: false,
-        isLoadingMore: false,
-        error: e.toString(),
-      );
-    }
-  }
+         // Determine if there are more pages: we fetched pageSize + 1 from the API.
+         // If we got exactly pageSize + 1, there are more pages available.
+         // If we got less than or equal to pageSize, we've reached the end.
+         final hasMoreData = rawFetched.length == pageSize + 1;
+
+         final courses = page == 0 ? fetched : [...state.courses, ...fetched];
+
+         state = state.copyWith(
+           courses: courses,
+           page: page,
+           hasMore: hasMoreData,
+           isInitialLoading: false,
+           isLoadingMore: false,
+           error: null,
+         );
+       }
+     } catch (e) {
+       state = state.copyWith(
+         isInitialLoading: false,
+         isLoadingMore: false,
+         error: e.toString(),
+       );
+     }
+   }
 
   void updateFilters({String? year, String? subject, String? type}) {
     final nextYear = year ?? state.year;
