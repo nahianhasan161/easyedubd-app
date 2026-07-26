@@ -148,7 +148,7 @@ class _AdminCourseManagementScreenState
                   if (isEdit) {
                     await ref
                         .read(adminCourseManagementRepositoryProvider)
-                        .updateCourse(course!.id, payload);
+                        .updateCourse(course.id, payload);
                   } else {
                     await ref
                         .read(adminCourseManagementRepositoryProvider)
@@ -313,7 +313,7 @@ class _AdminCourseManagementScreenState
                               child: ListView.separated(
                                 padding: const EdgeInsets.all(12),
                                 itemCount: page.items.length,
-                                separatorBuilder: (_, __) =>
+                                separatorBuilder: (_, _) =>
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final course = page.items[index];
@@ -338,7 +338,7 @@ class _AdminCourseManagementScreenState
                                               width: 48,
                                               height: 48,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
+                                              errorBuilder: (_, _, _) =>
                                                   Container(
                                                 width: 48,
                                                 height: 48,

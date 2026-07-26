@@ -454,7 +454,7 @@ class _MissingProfileOnboardingScreenState
                       if (step.options != null &&
                           step.options!.isNotEmpty) ...[
                         DropdownButtonFormField<String>(
-                          value: step.controller.text.isEmpty
+                          initialValue: step.controller.text.isEmpty
                               ? null
                               : step.controller.text,
                           isExpanded: true,
@@ -476,7 +476,7 @@ class _MissingProfileOnboardingScreenState
                         ),
                       ] else if (step.key == 'department') ...[
                         DropdownButtonFormField<String>(
-                          value: _showCustomDepartment
+                          initialValue: _showCustomDepartment
                               ? 'Other'
                               : (step.controller.text.isEmpty
                                   ? null

@@ -1,4 +1,3 @@
-import 'package:easyedubd_app/features/presentation/screens/admin/course_management_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_device.dart';
@@ -219,7 +218,7 @@ class _DevicesTab extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: page.items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final device = page.items[index];
               final title = device.deviceName?.isNotEmpty == true
@@ -602,7 +601,7 @@ class _EnrollmentsTab extends ConsumerWidget {
             return ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: page.items.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final enrollment = page.items[index];
                 final isActive = enrollment.status == 'active' &&

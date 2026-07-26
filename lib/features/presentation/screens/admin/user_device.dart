@@ -42,7 +42,7 @@ class UserDevice {
   });
 
   factory UserDevice.fromJson(Map<String, dynamic> json) {
-    final parse = (v) =>
+    DateTime? parse(v) =>
         v == null ? null : DateTime.parse(v as String);
 
     return UserDevice(

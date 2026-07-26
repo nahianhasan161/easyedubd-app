@@ -257,7 +257,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       DropdownButtonFormField<String>(
-                        value: _showCustomDepartment
+                        initialValue: _showCustomDepartment
                             ? 'Other'
                             : (_departmentController.text.isEmpty
                                 ? null
@@ -484,7 +484,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final value = options.contains(text) ? text : null;
 
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,

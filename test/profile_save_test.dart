@@ -43,7 +43,7 @@ void main() {
         routes: [
           GoRoute(
             path: '/',
-            builder: (_, __) => Scaffold(
+            builder: (_, _) => Scaffold(
               body: Builder(
                 builder: (context) => ElevatedButton(
                   onPressed: () => context.push('/profile'),
@@ -54,7 +54,7 @@ void main() {
           ),
           GoRoute(
             path: '/profile',
-            builder: (_, __) => const ProfileScreen(),
+            builder: (_, _) => const ProfileScreen(),
           ),
         ],
       );

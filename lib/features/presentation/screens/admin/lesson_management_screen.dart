@@ -5,7 +5,6 @@ import 'package:easyedubd_app/features/presentation/screens/profile/profile_prov
 import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class AdminLessonManagementScreen extends ConsumerStatefulWidget {
   const AdminLessonManagementScreen({
@@ -159,7 +158,7 @@ class _AdminLessonManagementScreenState
                   if (isEdit) {
                     await ref
                         .read(adminCourseManagementRepositoryProvider)
-                        .updateLesson(int.parse(lesson!.id), payload);
+                        .updateLesson(int.parse(lesson.id), payload);
                   } else {
                     await ref
                         .read(adminCourseManagementRepositoryProvider)
@@ -320,7 +319,7 @@ class _AdminLessonManagementScreenState
                               child: ListView.separated(
                                 padding: const EdgeInsets.all(12),
                                 itemCount: page.items.length,
-                                separatorBuilder: (_, __) =>
+                                separatorBuilder: (_, _) =>
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final lesson = page.items[index];

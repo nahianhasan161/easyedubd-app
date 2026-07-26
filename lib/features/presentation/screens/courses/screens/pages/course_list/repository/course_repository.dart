@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/models/promotion.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer;
 
@@ -64,9 +65,19 @@ class CourseRepository {
       );
 
       /* print(const JsonEncoder.withIndent('  ').convert(response)); */
-      return (response as List<dynamic>)
+      final courses = (response as List<dynamic>)
           .map((json) => Course.fromJson(json as Map<String, dynamic>))
           .toList();
+
+      if (courses.isNotEmpty) {
+        final courseIds = courses.map((c) => c.id).toList();
+        final promotions = await _getPromotionsForCourses(courseIds);
+        for (final course in courses) {
+          course.promotions = promotions[course.id] ?? const [];
+        }
+      }
+
+      return courses;
     } catch (e, stackTrace) {
       developer.log(e.toString(), error: e, stackTrace: stackTrace);
       rethrow;
@@ -162,12 +173,55 @@ class CourseRepository {
             onTimeout: () => throw TimeoutException('Courses by IDs fetch timeout'),
           );
 
-      return (response as List<dynamic>)
+      final courses = (response as List<dynamic>)
           .map((json) => Course.fromJson(json as Map<String, dynamic>))
           .toList();
+
+      if (courses.isNotEmpty) {
+        final promotions = await _getPromotionsForCourses(ids);
+        for (final course in courses) {
+          course.promotions = promotions[course.id] ?? const [];
+        }
+      }
+
+      return courses;
     } catch (e, stackTrace) {
       developer.log(e.toString(), error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
+
+  Future<Map<int, List<Promotion>>> _getPromotionsForCourses(
+    List<int> courseIds,
+  ) async {
+    if (courseIds.isEmpty) return {};
+
+    try {
+      final response = await _supabase
+          .from('promotion_course')
+          .select('promotion:promotion_id(*), course_id')
+          .inFilter('course_id', courseIds)
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => throw TimeoutException('Promotions fetch timeout'),
+          );
+
+      final result = <int, List<Promotion>>{};
+      for (final item in response as List<dynamic>) {
+        final map = Map<String, dynamic>.from(item as Map<String, dynamic>);
+        final promotionJson = map['promotion'];
+        final courseId = (map['course_id'] as num).toInt();
+        if (promotionJson != null) {
+          final promotion = Promotion.fromJson(promotionJson as Map<String, dynamic>);
+          result.putIfAbsent(courseId, () => []).add(promotion);
+        }
+      }
+
+      return result;
+    } catch (e) {
+      developer.log('Failed to load promotions: $e');
+      return {};
+    }
+  }
 }
+

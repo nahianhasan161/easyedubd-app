@@ -2,6 +2,8 @@ import 'package:easyedubd_app/core/providers/router_provider.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/core/startup/startup_controller.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/promotion_management_screen.dart';
+import 'package:easyedubd_app/features/presentation/screens/admin/promotion_course_assignment_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_details_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_player.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_coming_soon_screen.dart';
@@ -304,9 +306,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
-        name: 'course-management',
+        name: 'admin-course-management',
         path: '/admin/course-management',
         builder: (context, state) => const AdminCourseManagementScreen(),
+      ),
+
+      GoRoute(
+        name: 'promotion-management',
+        path: '/admin/promotions',
+        builder: (context, state) => const PromotionManagementScreen(),
+      ),
+
+      GoRoute(
+        name: 'promotion-course-assignment',
+        path: '/admin/promotions/:promotionId/courses',
+        builder: (context, state) {
+          final promotionId = int.parse(state.pathParameters['promotionId']!);
+          final promotionName = state.extra as String? ?? 'Promotion';
+
+          return PromotionCourseAssignmentScreen(
+            promotionId: promotionId,
+            promotionName: promotionName,
+          );
+        },
       ),
 
       GoRoute(

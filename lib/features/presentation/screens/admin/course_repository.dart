@@ -1,5 +1,4 @@
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
-import 'package:easyedubd_app/features/presentation/screens/courses/models/enrollment.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,7 +156,7 @@ class AdminCourseRepository {
       query = query.eq('profile_id', profileId);
     }
 
-    Future<Map<String, Profile>> _fetchProfiles(List<Map<String, dynamic>> rows) async {
+    Future<Map<String, Profile>> fetchProfiles(List<Map<String, dynamic>> rows) async {
       // Name/email/phone come directly from the embedded `profiles` relation
       // in the enrollment query, so no extra lookup is needed.
       return {};
@@ -171,7 +170,7 @@ class AdminCourseRepository {
           .map((e) => e as Map<String, dynamic>)
           .toList();
 
-      final profiles = await _fetchProfiles(rawRows);
+      final profiles = await fetchProfiles(rawRows);
 
       final all = rawRows
           .map((e) => _EnrollmentRow.fromJson(e, profiles[e['profile_id'] as String]))
@@ -202,7 +201,7 @@ class AdminCourseRepository {
         .map((e) => e as Map<String, dynamic>)
         .toList();
 
-    final profiles = await _fetchProfiles(rawRows);
+    final profiles = await fetchProfiles(rawRows);
 
     final items = rawRows
         .map((e) => _EnrollmentRow.fromJson(e, profiles[e['profile_id'] as String]))

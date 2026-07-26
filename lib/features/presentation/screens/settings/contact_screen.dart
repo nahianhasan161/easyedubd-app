@@ -126,7 +126,7 @@ class ContactScreen extends StatelessWidget {
                 onTap: item.onTap,
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

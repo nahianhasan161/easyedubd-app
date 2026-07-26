@@ -19,11 +19,11 @@ void main() {
       routes: [
         GoRoute(
           path: '/onboarding',
-          builder: (_, __) => const OnboardingScreen(),
+          builder: (_, _) => const OnboardingScreen(),
         ),
         GoRoute(
           path: '/',
-          builder: (_, __) => const Scaffold(
+          builder: (_, _) => const Scaffold(
             body: Center(child: Text('AUTH FLOW')),
           ),
         ),
@@ -62,11 +62,11 @@ void main() {
       routes: [
         GoRoute(
           path: '/onboarding',
-          builder: (_, __) => const OnboardingScreen(),
+          builder: (_, _) => const OnboardingScreen(),
         ),
         GoRoute(
           path: '/',
-          builder: (_, __) => const Scaffold(
+          builder: (_, _) => const Scaffold(
             body: Center(child: Text('AUTH FLOW')),
           ),
         ),

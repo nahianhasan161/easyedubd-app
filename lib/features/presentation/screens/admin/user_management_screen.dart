@@ -207,7 +207,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                               child: ListView.separated(
                                 padding: const EdgeInsets.all(12),
                                 itemCount: page.items.length,
-                                separatorBuilder: (_, __) =>
+                                separatorBuilder: (_, _) =>
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final user = page.items[index];

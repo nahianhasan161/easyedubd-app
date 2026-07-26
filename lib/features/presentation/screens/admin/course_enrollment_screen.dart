@@ -5,7 +5,6 @@ import 'package:easyedubd_app/features/presentation/screens/profile/profile_prov
 import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class CourseEnrollmentScreen extends ConsumerStatefulWidget {
   const CourseEnrollmentScreen({
@@ -223,7 +222,7 @@ class _CourseEnrollmentScreenState extends ConsumerState<CourseEnrollmentScreen>
                               child: ListView.separated(
                                 padding: const EdgeInsets.all(12),
                                 itemCount: page.items.length,
-                                separatorBuilder: (_, __) =>
+                                separatorBuilder: (_, _) =>
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final enrollment = page.items[index];
@@ -431,7 +430,7 @@ class _UserPickerDialogState extends ConsumerState<_UserPickerDialog> {
                         return ListView.separated(
                           shrinkWrap: true,
                           itemCount: filtered.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final user = filtered[index];
                             final name = user.fullName?.isNotEmpty == true

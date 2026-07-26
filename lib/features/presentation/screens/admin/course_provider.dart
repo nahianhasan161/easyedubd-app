@@ -1,4 +1,3 @@
-import 'package:easyedubd_app/features/presentation/screens/admin/course_management_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

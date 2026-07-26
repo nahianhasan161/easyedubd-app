@@ -132,6 +132,15 @@ class AdminDrawer extends ConsumerWidget {
                 router.push('/admin/course-management');
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.local_offer_outlined),
+              title: const Text('Promotions'),
+              onTap: () {
+                final router = GoRouter.of(context);
+                context.pop();
+                router.push('/admin/promotions');
+              },
+            ),
           ],
           const Divider(),
           ListTile(

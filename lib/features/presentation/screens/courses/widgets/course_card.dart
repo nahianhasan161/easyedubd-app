@@ -20,6 +20,12 @@ class CourseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isFree = course.is_free;
+    final originalPrice = course.price;
+    final effectivePrice = course.effectivePrice;
+    final hasDiscount = effectivePrice != null &&
+        originalPrice != null &&
+        effectivePrice < originalPrice;
+    final discountPercent = course.bestDiscountPercentage;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -92,7 +98,7 @@ class CourseCard extends StatelessWidget {
                 ),
 
                 // DISCOUNT BADGE (bottom-right of image)
-                if (!isFree && !isEnrolled && course.price != null)
+                if (hasDiscount && discountPercent != null)
                   Positioned(
                     bottom: 10,
                     right: 10,
@@ -112,9 +118,9 @@ class CourseCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Text(
-                        '-20%',
-                        style: TextStyle(
+                      child: Text(
+                        '-${discountPercent.toStringAsFixed(0)}%',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
@@ -169,23 +175,24 @@ class CourseCard extends StatelessWidget {
                      overflow: TextOverflow.ellipsis,
                    ),
 
-                  if (!isFree && !isEnrolled && course.price != null) ...[
+                  if (!isFree && !isEnrolled && originalPrice != null) ...[
                     const SizedBox(height: 14),
                     Align(
                       alignment: Alignment.centerRight,
                       child: Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Text(
-                            '৳${(course.price!).toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey.shade600,
-                              decoration: TextDecoration.lineThrough,
-                              decorationColor: Colors.grey.shade600,
+                          if (hasDiscount)
+                            Text(
+                              '৳${originalPrice.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey.shade600,
+                                decoration: TextDecoration.lineThrough,
+                                decorationColor: Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
+                          if (hasDiscount) const SizedBox(width: 10),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -196,7 +203,7 @@ class CourseCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '৳${(course.price! * 0.8).toStringAsFixed(0)}',
+                              '৳${(effectivePrice ?? originalPrice).toStringAsFixed(0)}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
@@ -231,7 +238,7 @@ class CourseCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ] else if (!isFree && !isEnrolled && course.price == null)
+                  ] else if (!isFree && !isEnrolled && originalPrice == null)
                     Align(
                       alignment: Alignment.centerRight,
                       child: Row(
@@ -269,8 +276,8 @@ class CourseCard extends StatelessWidget {
                             ),
                           ],
                         ],
+                      ),
                     ),
-                  ),
 
                   if (isEnrolled) ...[
                     const SizedBox(height: 14),
@@ -309,8 +316,8 @@ class CourseCard extends StatelessWidget {
         ),
       ),
     );
-      }
-    }
+  }
+}
 
 /// Rounded badge used for FREE / PREMIUM / ENROLLED.
 class _Pill extends StatelessWidget {
@@ -441,8 +448,7 @@ class _ShimmerBox extends StatelessWidget {
   const _ShimmerBox({
     required this.width,
     required this.height,
-    this.borderRadius = 4,
-  });
+  }) : borderRadius = 4;
 
   final double width;
   final double height;

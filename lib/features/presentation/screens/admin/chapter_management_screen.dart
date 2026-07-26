@@ -112,7 +112,7 @@ class _AdminChapterManagementScreenState
                   if (isEdit) {
                     await ref
                         .read(adminCourseManagementRepositoryProvider)
-                        .updateChapter(int.parse(chapter!.id), payload);
+                        .updateChapter(int.parse(chapter.id), payload);
                   } else {
                     await ref
                         .read(adminCourseManagementRepositoryProvider)
@@ -273,7 +273,7 @@ class _AdminChapterManagementScreenState
                               child: ListView.separated(
                                 padding: const EdgeInsets.all(12),
                                 itemCount: page.items.length,
-                                separatorBuilder: (_, __) =>
+                                separatorBuilder: (_, _) =>
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final chapter = page.items[index];

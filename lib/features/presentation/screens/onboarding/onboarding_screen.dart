@@ -134,7 +134,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   height: 9,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    color: active ? primary : primary.withOpacity(0.25),
+                    color: active ? primary : primary.withValues(alpha: 0.25),
                   ),
                 );
               }),
@@ -213,8 +213,8 @@ class _LearnAnywhereIllustration extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            primary.withOpacity(0.08),
-            primary.withOpacity(0.02),
+            primary.withValues(alpha: 0.08),
+            primary.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(28),
@@ -226,12 +226,12 @@ class _LearnAnywhereIllustration extends StatelessWidget {
           Positioned(
             top: 30,
             left: 24,
-            child: _blob(90, primary.withOpacity(0.12)),
+            child: _blob(90, primary.withValues(alpha: 0.12)),
           ),
           Positioned(
             bottom: 40,
             right: 20,
-            child: _blob(70, primary.withOpacity(0.18)),
+            child: _blob(70, primary.withValues(alpha: 0.18)),
           ),
 
           // Laptop
@@ -269,7 +269,7 @@ class _LearnAnywhereIllustration extends StatelessWidget {
                     child: Container(
                       margin: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: primary.withOpacity(0.12),
+                        color: primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -344,8 +344,8 @@ class _OnePlaceIllustration extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            primary.withOpacity(0.08),
-            primary.withOpacity(0.02),
+            primary.withValues(alpha: 0.08),
+            primary.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(28),
@@ -355,7 +355,7 @@ class _OnePlaceIllustration extends StatelessWidget {
           Positioned(
             top: 24,
             right: 28,
-            child: _blob(80, primary.withOpacity(0.14)),
+            child: _blob(80, primary.withValues(alpha: 0.14)),
           ),
           Padding(
             padding: const EdgeInsets.all(26),
@@ -372,7 +372,7 @@ class _OnePlaceIllustration extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: primary.withOpacity(0.08),
+                        color: primary.withValues(alpha: 0.08),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),
@@ -383,7 +383,7 @@ class _OnePlaceIllustration extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: primary.withOpacity(0.12),
+                        backgroundColor: primary.withValues(alpha: 0.12),
                         child: Icon(item.$2, color: primary, size: 26),
                       ),
                       const SizedBox(height: 10),
@@ -422,8 +422,8 @@ class _JourneyIllustration extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            primary.withOpacity(0.08),
-            primary.withOpacity(0.02),
+            primary.withValues(alpha: 0.08),
+            primary.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(28),
@@ -434,12 +434,12 @@ class _JourneyIllustration extends StatelessWidget {
           Positioned(
             top: 40,
             right: 30,
-            child: _blob(90, primary.withOpacity(0.14)),
+            child: _blob(90, primary.withValues(alpha: 0.14)),
           ),
           Positioned(
             bottom: 30,
             left: 26,
-            child: _blob(60, primary.withOpacity(0.18)),
+            child: _blob(60, primary.withValues(alpha: 0.18)),
           ),
 
           // Phone with app
@@ -470,7 +470,7 @@ class _JourneyIllustration extends StatelessWidget {
                   child: Container(
                     margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                     decoration: BoxDecoration(
-                      color: primary.withOpacity(0.1),
+                      color: primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -554,7 +554,7 @@ Widget _miniLine(Color color, {double width = 100}) => Container(
       width: width,
       height: 8,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.25),
+        color: color.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(4),
       ),
     );
@@ -564,7 +564,7 @@ Widget _miniTile(Color color) => Container(
       height: 30,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
     );

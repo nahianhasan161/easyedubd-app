@@ -147,7 +147,7 @@ class _UserDevicesScreenState extends ConsumerState<UserDevicesScreen> {
                         child: ListView.separated(
                           padding: const EdgeInsets.all(12),
                           itemCount: page.items.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final device = page.items[index];
                           final title = device.deviceName?.isNotEmpty == true

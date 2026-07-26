@@ -127,7 +127,7 @@ class _CourseEnrollmentListScreenState
                               child: ListView.separated(
                                 padding: const EdgeInsets.all(12),
                                 itemCount: page.items.length,
-                                separatorBuilder: (_, __) =>
+                                separatorBuilder: (_, _) =>
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final course = page.items[index];
@@ -152,7 +152,7 @@ class _CourseEnrollmentListScreenState
                                               width: 48,
                                               height: 48,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
+                                              errorBuilder: (_, _, _) =>
                                                   Container(
                                                 width: 48,
                                                 height: 48,
