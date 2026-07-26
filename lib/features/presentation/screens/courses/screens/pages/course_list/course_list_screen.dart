@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:easyedubd_app/core/router/app_router.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
 import 'package:flutter/material.dart';
@@ -22,10 +23,11 @@ class CourseListScreen extends ConsumerStatefulWidget {
   ConsumerState<CourseListScreen> createState() => _CourseListScreenState();
 }
 
-class _CourseListScreenState extends ConsumerState<CourseListScreen> {
+class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteAware {
   final ScrollController _scrollController = ScrollController();
   Timer? _loadRetryTimer;
   bool _showLoadRetry = false;
+  bool _refreshScheduled = false;
 
   late String selectedYear;
   late String selectedSubject;
@@ -60,12 +62,39 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scheduleRefreshIfNeeded();
+  }
+
+  @override
   void dispose() {
+    final routeObserver = ref.read(routeObserverProvider);
+    routeObserver.unsubscribe(this);
     _loadRetryTimer?.cancel();
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
     super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    _scheduleRefreshIfNeeded();
+  }
+
+  void _scheduleRefreshIfNeeded() {
+    if (!widget.enrolledOnly) return;
+    if (!mounted) return;
+    if (_refreshScheduled) return;
+
+    _refreshScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _refreshScheduled = false;
+      if (!mounted) return;
+      await _refreshCourses();
+    });
   }
 
   void _resetLoadRetry() {
@@ -276,6 +305,9 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final routeObserver = ref.read(routeObserverProvider);
+    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute<dynamic>);
+
     final courseList = ref.watch(courseListProvider(widget.enrolledOnly));
 
     if (courseList.isInitialLoading) {

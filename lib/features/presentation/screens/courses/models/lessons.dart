@@ -25,7 +25,7 @@ class Lesson {
     // Supabase returns snake_case column names, so read both conventions.
     final videoId = (json['videoId'] ?? json['video_id'] ?? '').toString();
     final isCompleted =
-        (json['isCompleted'] ?? json['is_completed'] ?? false) as bool;
+        (json['isComplete'] ?? json['isCompleted'] ?? json['is_completed'] ?? false) as bool;
     final isLocked = (json['isLock'] ?? json['is_locked'] ?? false) as bool;
     final position = json['position'] is int ? json['position'] as int : null;
 

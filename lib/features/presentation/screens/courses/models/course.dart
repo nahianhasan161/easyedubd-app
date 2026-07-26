@@ -79,10 +79,52 @@ class Course {
     return best?.discountedPrice(price!) ?? price;
   }
 
+  Promotion? get appliedPromotion {
+    if (is_free || price == null) return null;
+    Promotion? best;
+    for (final p in promotions) {
+      if (best == null) {
+        best = p;
+        continue;
+      }
+      final bestDiscounted = best.discountedPrice(price!);
+      final pDiscounted = p.discountedPrice(price!);
+      if (pDiscounted != null &&
+          (bestDiscounted == null || pDiscounted < bestDiscounted)) {
+        best = p;
+      }
+    }
+    final finalPrice = best?.discountedPrice(price!);
+    if (finalPrice == null || finalPrice >= price!) return null;
+    return best;
+  }
+
+  double? get savedAmount {
+    if (is_free || price == null) return null;
+    final effective = effectivePrice;
+    if (effective == null || effective >= price!) return null;
+    return price! - effective;
+  }
+
   double? get bestDiscountPercentage {
     if (is_free || price == null || price == 0) return null;
-    final effective = effectivePrice;
-    if (effective == null || effective == price) return null;
-    return ((price! - effective) / price!) * 100;
+    final saved = savedAmount;
+    if (saved == null || saved <= 0) return null;
+    return (saved / price!) * 100;
+  }
+
+  int get totalLessons {
+    return chapters.fold<int>(0, (sum, chapter) => sum + chapter.lessons.length);
+  }
+
+  int get completedLessons {
+    return chapters.fold<int>(0, (sum, chapter) {
+      return sum + chapter.lessons.where((lesson) => lesson.isCompleted).length;
+    });
+  }
+
+  double get completionPercentage {
+    if (totalLessons == 0) return 0.0;
+    return completedLessons / totalLessons;
   }
 }

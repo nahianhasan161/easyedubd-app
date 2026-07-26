@@ -107,7 +107,7 @@ class CourseListNotifier extends Notifier<CourseListState> {
             ? []
             : await _repository.getCoursesByIds(
                 ids.toList(),
-                includeChapters: false,
+                includeChapters: true,
               );
       } else {
         fetched = await _repository.getCourses(

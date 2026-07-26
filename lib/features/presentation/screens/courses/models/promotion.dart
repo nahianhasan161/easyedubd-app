@@ -73,6 +73,13 @@ class Promotion {
     return 'Less than 1 minute left';
   }
 
+  String get discountLabel {
+    if (discountType == 'percentage') {
+      return '$discountValue% off';
+    }
+    return '৳${discountValue.toStringAsFixed(0)} off';
+  }
+
   double? discountedPrice(double originalPrice) {
     if (!isActiveFor(DateTime.now())) return null;
     if (discountType == 'percentage') {

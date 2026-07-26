@@ -40,20 +40,16 @@ import 'package:posthog_flutter/posthog_flutter.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   debugPrint("🔥 NEW GOROUTER CREATED");
-  // Watch ONLY the listenable so the router instance is created once and reacts
-  // to auth/startup changes via refreshListenable (recreating the router would
-  // reset it to initialLocation and flash the login screen on cold start).
   final listenable = ref.watch(authListenable);
 
   final supabase = ref.read(supabaseProvider);
 
+  final routeObserver = RouteObserver<PageRoute<dynamic>>();
+
   return GoRouter(
     initialLocation: '/splash',
-    refreshListenable: listenable, // <---
+    refreshListenable: listenable,
     redirect: (context, state) {
-      // Read (not watch) the startup state at redirect time so a state change
-      // re-runs the redirect via refreshListenable rather than rebuilding the
-      // whole router.
       final startupState = ref.read(startupProvider);
       debugPrint(
         'REDIRECT: location=${state.matchedLocation}, '
@@ -164,7 +160,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return '/splash';
       }
     },
-    observers: [PosthogObserver()],
+    observers: [PosthogObserver(), routeObserver],
     routes: [
       GoRoute(
         name: 'splash',
@@ -220,7 +216,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
         builder: (context, state) {
           final videoId = state.pathParameters['videoId'] ?? '';
-          final title = state.extra as String?;
+          final extra = state.extra;
+          if (extra is LessonPlayerArgs) {
+            return LessonPlayer(
+              videoId: videoId,
+              title: extra.title,
+              courseId: extra.courseId,
+              chapterId: extra.chapterId,
+              chapterTitle: extra.chapterTitle,
+              lessonId: extra.lessonId,
+              lessonsInChapter: extra.lessonsInChapter,
+              allChapters: extra.allChapters,
+              previousChapter: extra.previousChapter,
+              nextChapter: extra.nextChapter,
+            );
+          }
+          final title = extra as String?;
           return LessonPlayer(videoId: videoId, title: title ?? '');
         },
       ),
@@ -394,4 +405,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+});
+
+final routeObserverProvider = Provider<RouteObserver<PageRoute<dynamic>>>((ref) {
+  return RouteObserver<PageRoute<dynamic>>();
 });

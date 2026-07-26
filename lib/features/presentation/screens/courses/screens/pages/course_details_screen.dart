@@ -1,6 +1,8 @@
+import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_player.dart';
 import 'package:easyedubd_app/core/providers/course_provider.dart';
 import 'package:easyedubd_app/core/services/course_access_service.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/shared/widgets/App_cached_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,9 +94,16 @@ class CourseDetailsScreen extends ConsumerWidget {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text(
-                          course.description,
-                          style: const TextStyle(fontSize: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              course.description,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 16),
+                            _CourseProgressBar(course: course),
+                          ],
                         ),
                       ),
                     ),
@@ -241,17 +250,50 @@ class CourseDetailsScreen extends ConsumerWidget {
                                             return;
                                           }
 
+                                          final previousChapter = index > 0
+                                              ? ChapterNav(
+                                                  id: course.chapters[index - 1].id,
+                                                  title: course.chapters[index - 1].title,
+                                                )
+                                              : null;
+                                          final nextChapter =
+                                              index < course.chapters.length - 1
+                                                  ? ChapterNav(
+                                                      id: course.chapters[index + 1].id,
+                                                      title: course.chapters[index + 1].title,
+                                                    )
+                                                  : null;
+
+                                          final args = LessonPlayerArgs(
+                                            title: lesson.title,
+                                            courseId: course.id,
+                                            chapterId: chapter.id,
+                                            chapterTitle: chapter.title,
+                                            lessonId: lesson.id,
+                                            lessonsInChapter: chapter.lessons,
+                                            allChapters: course.chapters,
+                                            previousChapter: previousChapter,
+                                            nextChapter: nextChapter,
+                                          );
+
                                           if (lesson.videoId.isEmpty) {
                                             context.push(
                                               '/lesson',
-                                              extra: lesson.title,
+                                              extra: args,
                                             );
                                           } else {
                                             context.push(
                                               '/lesson/${lesson.videoId}',
-                                              extra: lesson.title,
+                                              extra: args,
                                             );
                                           }
+
+                                          Future.delayed(const Duration(milliseconds: 300), () async {
+                                            if (context.mounted) {
+                                              ref.invalidate(courseByIdProvider(courseId));
+                                              await ref.read(courseByIdProvider(courseId).future);
+                                            }
+                                          });
                                         },
                                       ),
                                     ),
@@ -311,6 +353,67 @@ class CourseDetailsScreen extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _CourseProgressBar extends StatelessWidget {
+  final Course course;
+
+  const _CourseProgressBar({required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = course.totalLessons;
+    final completed = course.completedLessons;
+    final percentage = course.completionPercentage;
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.play_circle_outline, size: 18, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Course Progress',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '$completed of $total lessons',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            minHeight: 8,
+            value: percentage.clamp(0.0, 1.0),
+            backgroundColor: Colors.grey.shade200,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              percentage >= 1.0
+                  ? Colors.green
+                  : theme.colorScheme.primary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${(percentage * 100).toStringAsFixed(0)}% completed',
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: percentage >= 1.0 ? Colors.green : theme.colorScheme.primary,
+          ),
+        ),
+      ],
     );
   }
 }

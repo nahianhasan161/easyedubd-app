@@ -179,37 +179,79 @@ class CourseCard extends StatelessWidget {
                     const SizedBox(height: 14),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          if (hasDiscount)
+                          if (hasDiscount) ...[
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  '৳${originalPrice.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey.shade600,
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF1B8),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                 child: Text(
+                                   discountPercent != null
+                                       ? '-${discountPercent.toStringAsFixed(0)}%'
+                                       : '',
+                                   style: const TextStyle(
+                                     fontSize: 13,
+                                     fontWeight: FontWeight.w700,
+                                     color: Color(0xFF7A4F01),
+                                   ),
+                                 ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
                             Text(
-                              '৳${originalPrice.toStringAsFixed(0)}',
+                              'You save ৳${course.savedAmount?.toStringAsFixed(0) ?? '0'}',
                               style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey.shade600,
-                                decoration: TextDecoration.lineThrough,
-                                decorationColor: Colors.grey.shade600,
+                                fontSize: 12,
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          if (hasDiscount) const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF1B8),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '৳${(effectivePrice ?? originalPrice).toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF7A4F01),
+                          ],
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '৳${(effectivePrice ?? originalPrice).toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF7A4F01),
+                                ),
                               ),
-                            ),
+                              if (course.appliedPromotion != null) ...[
+                                const SizedBox(width: 6),
+                                Tooltip(
+                                  message: course.appliedPromotion!.name,
+                                  child: Icon(
+                                    Icons.local_offer_rounded,
+                                    size: 16,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
@@ -280,35 +322,39 @@ class CourseCard extends StatelessWidget {
                     ),
 
                   if (isEnrolled) ...[
-                    const SizedBox(height: 14),
+                     const SizedBox(height: 14),
 
-                    // PROGRESS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
-                              value: course.progress,
-                              minHeight: 8,
-                              backgroundColor: Colors.grey.shade200,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                theme.colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '${(course.progress * 100).toInt()}%',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                     // PROGRESS
+                     Row(
+                       children: [
+                         Expanded(
+                           child: ClipRRect(
+                             borderRadius: BorderRadius.circular(6),
+                             child: LinearProgressIndicator(
+                               value: course.completionPercentage.clamp(0.0, 1.0),
+                               minHeight: 8,
+                               backgroundColor: Colors.grey.shade200,
+                               valueColor: AlwaysStoppedAnimation<Color>(
+                                 course.completionPercentage >= 1.0
+                                     ? Colors.green
+                                     : theme.colorScheme.primary,
+                               ),
+                             ),
+                           ),
+                         ),
+                         const SizedBox(width: 10),
+                         Text(
+                           '${(course.completionPercentage * 100).toInt()}%',
+                           style: theme.textTheme.bodySmall?.copyWith(
+                             fontWeight: FontWeight.w600,
+                             color: course.completionPercentage >= 1.0
+                                 ? Colors.green
+                                 : Colors.grey.shade700,
+                           ),
+                         ),
+                       ],
+                     ),
+                   ],
                 ],
               ),
             ),
