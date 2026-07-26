@@ -1,6 +1,7 @@
 import 'package:easyedubd_app/features/presentation/screens/admin/course_management_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_management_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
@@ -155,6 +156,7 @@ class _AdminCourseManagementScreenState
                         .createCourse(payload);
                   }
                   if (dialogContext.mounted) Navigator.of(dialogContext).pop(true);
+                  await refreshStudentCourseCaches(ref);
                 } catch (e) {
                   if (dialogContext.mounted) {
                     setDialogState(() => errorText = 'Error: $e');
@@ -191,6 +193,7 @@ class _AdminCourseManagementScreenState
           .read(adminCourseManagementRepositoryProvider)
           .deleteCourse(courseId);
       ref.invalidate(adminCoursesProvider(_query));
+      await refreshStudentCourseCaches(ref);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Course deleted')),

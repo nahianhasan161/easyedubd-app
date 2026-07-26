@@ -1,6 +1,7 @@
 import 'package:easyedubd_app/features/presentation/screens/admin/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
@@ -59,6 +60,7 @@ class _CourseEnrollmentScreenState extends ConsumerState<CourseEnrollmentScreen>
             .read(adminCourseRepositoryProvider)
             .enrollUser(profileId: selected.id, courseId: widget.courseId);
         ref.invalidate(enrollmentsProvider(_query));
+        await refreshStudentCourseCaches(ref);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${selected.fullName ?? 'User'} enrolled')),
@@ -92,6 +94,7 @@ class _CourseEnrollmentScreenState extends ConsumerState<CourseEnrollmentScreen>
           .read(adminCourseRepositoryProvider)
           .removeEnrollment(enrollmentId);
       ref.invalidate(enrollmentsProvider(_query));
+      await refreshStudentCourseCaches(ref);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Enrollment removed')),

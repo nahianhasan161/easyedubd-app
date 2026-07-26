@@ -5,6 +5,7 @@ import 'package:easyedubd_app/features/presentation/screens/admin/user_device_pr
 import 'package:easyedubd_app/features/presentation/screens/admin/user_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
@@ -470,6 +471,8 @@ class _EnrollmentsTab extends ConsumerWidget {
                                         );
                                       }
 
+                                      await refreshStudentCourseCaches(ref);
+
                                       setDialogState(() {
                                         enrollingId = null;
                                       });
@@ -527,6 +530,7 @@ class _EnrollmentsTab extends ConsumerWidget {
           .read(adminCourseRepositoryProvider)
           .removeEnrollment(enrollmentId);
       ref.invalidate(enrollmentsProvider(EnrollmentsQuery(page: 1, profileId: userId)));
+      await refreshStudentCourseCaches(ref);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Enrollment removed')),
