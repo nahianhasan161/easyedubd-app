@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_management_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_management_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
@@ -7,6 +8,7 @@ import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 
 class AdminCourseManagementScreen extends ConsumerStatefulWidget {
   const AdminCourseManagementScreen({super.key});
@@ -225,15 +227,19 @@ class _AdminCourseManagementScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('Course Management')),
-      body: !isAdmin
-          ? const Center(
-              child: Text(
-                'You do not have permission to view this page.',
-                style: TextStyle(fontSize: 16),
-              ),
-            )
-          : Column(
-              children: [
+      body: Column(
+        children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
+          Expanded(
+            child: !isAdmin
+              ? const Center(
+                  child: Text(
+                    'You do not have permission to view this page.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                )
+              : Column(
+                  children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                   child: Row(
@@ -416,17 +422,20 @@ class _AdminCourseManagementScreenState
                               onNext: _page < page.totalPages
                                   ? () => setState(() => _page++)
                                   : null,
-                            ),
-                          ],
-                        );
-                      },
+                             ),
+                           ],
+                         );
+                       },
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-    );
-  }
+                ],
+              ),
+             ),
+         ],
+       ),
+     );
+   }
 }
 
 class _AdminCoursePaginationBar extends StatelessWidget {

@@ -1,4 +1,6 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,11 +11,21 @@ class SplashScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(startupProvider);
 
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return Scaffold(
+      body: Column(
+        children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
+          Expanded(
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-/* import 'package:easyedubd_app/core/startup/startup_provider.dart';
+/* import 'package:easyedubd_app/core/network/connectivity_provider.dart';
+import 'package:easyedubd_app/core/startup/startup_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

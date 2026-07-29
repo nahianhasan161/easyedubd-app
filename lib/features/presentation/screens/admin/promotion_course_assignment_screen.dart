@@ -1,8 +1,10 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/repository/promotion_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 
 class PromotionCourseAssignmentScreen extends ConsumerStatefulWidget {
   const PromotionCourseAssignmentScreen({
@@ -247,6 +249,7 @@ else ...[
       ),
       body: Column(
         children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(

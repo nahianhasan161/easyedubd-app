@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/user_device.dart';
@@ -10,6 +11,7 @@ import 'package:easyedubd_app/features/presentation/screens/profile/profile_prov
 import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 
 class UserDetailScreen extends ConsumerStatefulWidget {
   const UserDetailScreen({
@@ -60,24 +62,31 @@ class _UserDetailScreenState extends ConsumerState<UserDetailScreen>
           ],
         ),
       ),
-      body: !isAdmin
-          ? const Center(
-              child: Text(
-                'You do not have permission to view this page.',
-                style: TextStyle(fontSize: 16),
-              ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                if (profile != null)
-                  _ProfileTab(profile: profile)
-                else
-                  const Center(child: Text('No profile data available')),
-                _DevicesTab(userId: widget.userId),
-                _EnrollmentsTab(userId: widget.userId),
-              ],
-            ),
+      body: Column(
+        children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
+          Expanded(
+            child: !isAdmin
+                ? const Center(
+                    child: Text(
+                      'You do not have permission to view this page.',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  )
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      if (profile != null)
+                        _ProfileTab(profile: profile)
+                      else
+                        const Center(child: Text('No profile data available')),
+                      _DevicesTab(userId: widget.userId),
+                      _EnrollmentsTab(userId: widget.userId),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -254,11 +263,6 @@ class _DevicesTab extends ConsumerWidget {
                   Colors.red,
                   'Blocked',
                 ),
-                _ => (
-                  Icons.help_outline,
-                  Colors.grey,
-                  'Unknown',
-                ),
               };
 
               return ListTile(
@@ -287,7 +291,7 @@ class _DevicesTab extends ConsumerWidget {
                   isDense: true,
                   underline: const SizedBox.shrink(),
                   items: DeviceStatus.values.map((s) {
-                    final (_, __, itemLabel) = switch (s) {
+                    final (iconData, color, itemLabel) = switch (s) {
                       DeviceStatus.approved => (
                         Icons.verified_user,
                         Colors.green,

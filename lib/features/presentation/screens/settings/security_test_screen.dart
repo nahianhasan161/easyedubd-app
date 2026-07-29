@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/services/screen_security_service.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SecurityTestScreen extends StatefulWidget {
+class SecurityTestScreen extends ConsumerStatefulWidget {
   const SecurityTestScreen({super.key});
 
   @override
-  State<SecurityTestScreen> createState() => _SecurityTestScreenState();
+  ConsumerState<SecurityTestScreen> createState() => _SecurityTestScreenState();
 }
 
-class _SecurityTestScreenState extends State<SecurityTestScreen> {
+class _SecurityTestScreenState extends ConsumerState<SecurityTestScreen> {
   bool _enabled = ScreenSecurityService.isEnabled;
   bool _isRecording = false;
   final List<String> _log = [];
@@ -70,9 +73,13 @@ class _SecurityTestScreenState extends State<SecurityTestScreen> {
     final platform = Platform.isIOS ? 'iOS' : 'Android';
     return Scaffold(
       appBar: AppBar(title: const Text('Screen Security Test')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
           _StatusTile(
             label: 'Platform',
             value: platform,
@@ -150,10 +157,13 @@ class _SecurityTestScreenState extends State<SecurityTestScreen> {
                 : ListView(
                     children: _log.map((e) => Text('• $e')).toList(),
                   ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
-    );
+     ],
+    ),
+  );
   }
 }
 

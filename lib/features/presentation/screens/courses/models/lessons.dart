@@ -2,7 +2,6 @@ class Lesson {
   final String id;
   final String title;
   final String description;
-
   final String videoId;
   final Duration duration;
   final bool isCompleted;
@@ -13,7 +12,6 @@ class Lesson {
     required this.id,
     required this.title,
     required this.description,
-
     required this.videoId,
     required this.duration,
     this.isCompleted = false,
@@ -22,7 +20,6 @@ class Lesson {
   });
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
-    // Supabase returns snake_case column names, so read both conventions.
     final videoId = (json['videoId'] ?? json['video_id'] ?? '').toString();
     final isCompleted =
         (json['isComplete'] ?? json['isCompleted'] ?? json['is_completed'] ?? false) as bool;
@@ -31,19 +28,26 @@ class Lesson {
 
     return Lesson(
       id: json['id'].toString(),
-
       title: json['title'] ?? '',
-
       description: json['description'] ?? '',
-
       videoId: videoId,
-
       duration: Duration(minutes: json['duration'] ?? 0),
-
       isCompleted: isCompleted,
-
       isLocked: isLocked,
       position: position,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'videoId': videoId,
+      'duration': duration.inMinutes,
+      'isComplete': isCompleted,
+      'isLock': isLocked,
+      'position': position,
+    };
   }
 }

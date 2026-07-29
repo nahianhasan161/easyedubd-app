@@ -151,14 +151,14 @@ Future<void> _fetchPage(int page) async {
            error: null,
          );
        }
-     } catch (e) {
-       state = state.copyWith(
-         isInitialLoading: false,
-         isLoadingMore: false,
-         error: e.toString(),
-       );
-     }
-   }
+      } catch (e) {
+        state = state.copyWith(
+          isInitialLoading: false,
+          isLoadingMore: false,
+          error: e.toString(),
+        );
+      }
+    }
 
   void updateFilters({String? year, String? subject, String? type}) {
     final nextYear = year ?? state.year;
@@ -183,6 +183,13 @@ Future<void> _fetchPage(int page) async {
   void setEnrolledCourseIds(Set<int> ids) {
     final current = state.enrolledCourseIds;
 
+    // Don't overwrite non-empty enrolled ids with empty ids.
+    // On cold start, enrolledCourseIdsProvider may briefly return {} before
+    // auth is fully restored. We don't want to clear valid cached ids.
+    if (ids.isEmpty && current != null && current.isNotEmpty) {
+      return;
+    }
+
     if (current != null &&
         current.length == ids.length &&
         current.containsAll(ids)) {
@@ -191,8 +198,14 @@ Future<void> _fetchPage(int page) async {
 
     state = state.copyWith(enrolledCourseIds: ids);
 
-    // Reload both tabs so enrolled courses disappear from "All Courses"
-    // and appear in "My Courses" as soon as the ids arrive.
+    // Only skip reload when courses are already populated AND the new ids
+    // are empty. This prevents loadInitial() from overwriting pre-seeded
+    // cache data on cold start offline, while still allowing reloads when
+    // actual enrollment changes occur (non-empty ids that differ).
+    if (state.courses.isNotEmpty && ids.isEmpty) {
+      return;
+    }
+
     loadInitial();
   }
 }

@@ -1,6 +1,7 @@
 import 'package:easyedubd_app/core/providers/router_provider.dart';
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/core/startup/startup_controller.dart';
+import 'package:easyedubd_app/core/network/connectivity_provider.dart' show isOffline;
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/promotion_management_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/promotion_course_assignment_screen.dart';
@@ -49,7 +50,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: listenable,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final startupState = ref.read(startupProvider);
       debugPrint(
         'REDIRECT: location=${state.matchedLocation}, '
@@ -80,6 +81,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // directly here — that avoids a brief window on cold start where the
       // session hasn't finished restoring and the login screen flashes.
       //
+      // If startup failed, fall back to the login screen rather than getting
+      // stuck on the splash spinner.
+      if (startupState.hasError) {
+        return state.matchedLocation != '/' ? '/' : null;
+      }
+
       // While startup is still resolving (loading, or no value yet), keep the
       // user on /splash regardless of the target location so the login screen
       // never flashes. `value == null` covers the very first frames before the
@@ -89,16 +96,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return state.matchedLocation == '/splash' ? null : '/splash';
       }
 
-      // If startup failed, fall back to the login screen rather than getting
-      // stuck on the splash spinner.
-      if (startupState.hasError) {
-        return state.matchedLocation != '/' ? '/' : null;
-      }
-
       final status = startupState.value!;
 
       // If startup resolved to unauthenticated, run the onboarding/login flow.
-      if (status == AppStartupState.unauthenticated || session == null) {
+      // Skip this offline so previously logged-in users can still reach the
+      // dashboard and use offline functionality.
+      final isOfflineValue = ref.read(isOffline);
+      if ((status == AppStartupState.unauthenticated || session == null) && !isOfflineValue) {
         final onboarding = ref.read(onboardingCompletedProvider);
 
         return onboarding.when(
@@ -153,7 +157,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return '/device-blocked';
 
         case AppStartupState.unauthenticated:
-          // Handled above.
           return '/';
 
         case AppStartupState.loading:

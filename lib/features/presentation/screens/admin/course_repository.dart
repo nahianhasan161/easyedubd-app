@@ -23,7 +23,7 @@ class PaginatedCourses {
 }
 
 class PaginatedEnrollments {
-  final List<_EnrollmentRow> items;
+  final List<EnrollmentRow> items;
   final int total;
   final int page;
   final int pageSize;
@@ -40,7 +40,7 @@ class PaginatedEnrollments {
   int get end => (start + items.length - 1).clamp(0, total);
 }
 
-class _EnrollmentRow {
+class EnrollmentRow {
   final int id;
   final String status;
   final DateTime expiresAt;
@@ -54,7 +54,7 @@ class _EnrollmentRow {
   final String? email;
   final String? phone;
 
-  _EnrollmentRow({
+  EnrollmentRow({
     required this.id,
     required this.status,
     required this.expiresAt,
@@ -69,7 +69,7 @@ class _EnrollmentRow {
     this.phone,
   });
 
-  factory _EnrollmentRow.fromJson(Map<String, dynamic> json, [Profile? profile]) {
+  factory EnrollmentRow.fromJson(Map<String, dynamic> json, [Profile? profile]) {
     final course = json['course'] as Map<String, dynamic>? ?? {};
     final profileJson = json['profiles'] as Map<String, dynamic>?;
 
@@ -77,7 +77,7 @@ class _EnrollmentRow {
     final embeddedPhoneStr =
         embeddedPhone is String ? embeddedPhone : embeddedPhone?.toString();
 
-    return _EnrollmentRow(
+    return EnrollmentRow(
       id: json['id'] as int,
       status: json['status'] as String? ?? 'active',
       expiresAt: DateTime.parse(json['expires_at'] as String),
@@ -173,7 +173,7 @@ class AdminCourseRepository {
       final profiles = await fetchProfiles(rawRows);
 
       final all = rawRows
-          .map((e) => _EnrollmentRow.fromJson(e, profiles[e['profile_id'] as String]))
+          .map((e) => EnrollmentRow.fromJson(e, profiles[e['profile_id'] as String]))
           .where((row) {
             final name = row.fullName?.toLowerCase() ?? '';
             final email = row.email?.toLowerCase() ?? '';
@@ -204,7 +204,7 @@ class AdminCourseRepository {
     final profiles = await fetchProfiles(rawRows);
 
     final items = rawRows
-        .map((e) => _EnrollmentRow.fromJson(e, profiles[e['profile_id'] as String]))
+        .map((e) => EnrollmentRow.fromJson(e, profiles[e['profile_id'] as String]))
         .toList();
 
     return PaginatedEnrollments(

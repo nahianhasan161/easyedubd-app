@@ -1,4 +1,4 @@
-import 'lessons.dart'; // Ensure Lesson is imported
+import 'lessons.dart';
 
 class Chapter {
   final String id;
@@ -25,5 +25,15 @@ class Chapter {
           .map((e) => Lesson.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'position': position,
+      'lesson': lessons.map((l) => l.toJson()).toList(),
+    };
   }
 }

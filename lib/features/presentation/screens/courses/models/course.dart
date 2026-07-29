@@ -61,6 +61,24 @@ class Course {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'imageUrl': imageUrl,
+      'progress': progress,
+      'is_free': is_free,
+      'status': status,
+      'year': year,
+      'subject': subject,
+      'chapter': chapters.map((c) => c.toJson()).toList(),
+      'promotions': promotions.map((p) => p.toJson()).toList(),
+      'price': price == null ? null : price! * 100,
+      'position': position,
+    };
+  }
+
   double? get effectivePrice {
     if (is_free || price == null) return price;
     Promotion? best;

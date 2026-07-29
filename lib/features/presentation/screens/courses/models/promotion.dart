@@ -33,6 +33,18 @@ class Promotion {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'discount_type': discountType,
+      'discount_value': discountValue,
+      'starts_at': startsAt?.toIso8601String(),
+      'ends_at': endsAt?.toIso8601String(),
+      'is_active': isActive,
+    };
+  }
+
   bool isActiveFor(DateTime now) {
     if (!isActive) return false;
     if (startsAt != null && now.isBefore(startsAt!)) return false;

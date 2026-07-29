@@ -1,7 +1,9 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -60,8 +62,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final isLast = _index == _pages.length - 1;
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
+      body: Column(
+        children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
+          Expanded(
+            child: SafeArea(
+              child: Column(
           children: [
             const SizedBox(height: 8),
 
@@ -174,13 +180,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ),
                     child: Text(isLast ? 'Get Started' : 'Next'),
                   ),
-                ],
-              ),
-            ),
+                 ],
+               ),
+             ),
 
-            const SizedBox(height: 24),
-          ],
-        ),
+               const SizedBox(height: 24),
+             ],
+            ),
+          ),
+          ),
+        ],
       ),
     );
   }

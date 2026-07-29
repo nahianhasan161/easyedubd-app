@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_avatar.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
@@ -111,6 +112,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       phone: currentPhone,
     );
 
+    if (!await _hasInternet()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No internet connection. Please connect to the internet to update your profile.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     await ref.read(profileControllerProvider.notifier).save(profile);
 
     if (!mounted) return;
@@ -131,6 +143,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context,
     ).showSnackBar(const SnackBar(content: Text('Profile saved')));
     context.pop();
+  }
+
+  Future<bool> _hasInternet() async {
+    try {
+      final result = await InternetAddress.lookup('example.com')
+          .timeout(const Duration(seconds: 3));
+      return result.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override

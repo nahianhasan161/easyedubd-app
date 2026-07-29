@@ -123,7 +123,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context);
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
-    final isOffline = ref.watch(isOfflineProvider);
+    final offlineAsync = ref.watch(isOfflineProvider);
+    final isOffline = offlineAsync.value ?? true;
 
     return Scaffold(
       body: SafeArea(

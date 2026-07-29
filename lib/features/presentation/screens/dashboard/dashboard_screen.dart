@@ -1,9 +1,11 @@
 import 'package:easyedubd_app/core/providers/supabase_provider.dart';
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/dashboard/admin_drawer.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_avatar.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -158,7 +160,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
       ),
 
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: Column(
+        children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
+          Expanded(child: IndexedStack(index: _currentIndex, children: _pages)),
+        ],
+      ),
 
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,

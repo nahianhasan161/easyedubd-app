@@ -49,6 +49,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
       final notifier = ref.read(
         courseListProvider(widget.enrolledOnly).notifier,
       );
+      final currentState = ref.read(courseListProvider(widget.enrolledOnly));
 
       final idsAsync = ref.read(enrolledCourseIdsProvider);
       if (idsAsync.hasValue) {
@@ -57,7 +58,9 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
         idsAsync.whenData((ids) => notifier.setEnrolledCourseIds(ids));
       }
 
-      notifier.loadInitial();
+      if (currentState.courses.isEmpty) {
+        notifier.loadInitial();
+      }
     });
   }
 

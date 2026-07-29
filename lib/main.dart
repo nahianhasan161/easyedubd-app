@@ -4,6 +4,8 @@ import 'package:easyedubd_app/core/providers/auth_provider.dart';
 import 'package:easyedubd_app/core/router/app_router.dart';
 import 'package:easyedubd_app/core/services/app_lifecycle_handler.dart';
 import 'package:easyedubd_app/core/services/screen_security_service.dart';
+import 'package:easyedubd_app/core/storage/hive_init.dart';
+import 'package:easyedubd_app/core/storage/local_cache_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,7 +46,18 @@ Future<void> main() async {
     onTimeout: () => Future<void>.value(),
   );
 
-  await Future.wait([posthogFuture, screenSecurityFuture]);
+  final hiveFuture = HiveInit.init().timeout(
+    const Duration(seconds: 10),
+    onTimeout: () => Future<void>.value(),
+  );
+
+  await Future.wait([posthogFuture, screenSecurityFuture, hiveFuture]);
+
+  final cache = LocalCacheService();
+  final initialCourses = cache.getCachedCourses();
+  final initialEnrolled = cache.getCachedEnrolledCourses();
+  final initialEnrolledIds = cache.getCachedEnrolledCourseIds();
+  debugPrint('INIT_CACHE: general=${initialCourses.length}, enrolled=${initialEnrolled.length}, ids=${initialEnrolledIds.length}');
 
   final supabaseUrl = dotenv.env['SUPABASE_URL'];
   final supabaseKey = dotenv.env['SUPABASE_PUBLISHABLE_KEY'];
@@ -75,7 +88,7 @@ class MyApp extends ConsumerWidget {
 
     return PostHogWidget(
       child: MaterialApp.router(
-        title: 'Easy Education Bangladesh',
+        title: 'Easy Education BD',
         routerConfig: router,
         debugShowCheckedModeBanner: false,
 

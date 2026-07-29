@@ -22,11 +22,13 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 final authListenable = Provider<Listenable>((ref) {
   final controller = _RouterRefreshNotifier();
 
-  // Refresh on relevant auth transitions (sign-in / sign-out).
+  // Refresh on relevant auth transitions (sign-in / sign-out / token refresh).
   ref.listen(authStateProvider, (previous, next) {
     final event = next.value?.event;
     if (event == AuthChangeEvent.signedIn ||
-        event == AuthChangeEvent.signedOut) {
+        event == AuthChangeEvent.signedOut ||
+        event == AuthChangeEvent.tokenRefreshed ||
+        event == AuthChangeEvent.userUpdated) {
       controller.refresh();
     }
   });

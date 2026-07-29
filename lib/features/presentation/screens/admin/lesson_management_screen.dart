@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_management_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/admin/course_management_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/lessons.dart';
@@ -5,6 +6,7 @@ import 'package:easyedubd_app/features/presentation/screens/profile/profile_prov
 import 'package:easyedubd_app/shared/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easyedubd_app/shared/widgets/offline_banner.dart';
 
 class AdminLessonManagementScreen extends ConsumerStatefulWidget {
   const AdminLessonManagementScreen({
@@ -228,15 +230,19 @@ class _AdminLessonManagementScreenState
 
     return Scaffold(
       appBar: AppBar(title: Text('Lessons · ${widget.chapterTitle}')),
-      body: !isAdmin
-          ? const Center(
-              child: Text(
-                'You do not have permission to view this page.',
-                style: TextStyle(fontSize: 16),
-              ),
-            )
-          : Column(
-              children: [
+      body: Column(
+        children: [
+          if (ref.watch(isOffline)) const OfflineBanner(),
+          Expanded(
+            child: !isAdmin
+              ? const Center(
+                  child: Text(
+                    'You do not have permission to view this page.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                )
+              : Column(
+                  children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                   child: Row(
@@ -408,17 +414,20 @@ class _AdminLessonManagementScreenState
                               onNext: _page < page.totalPages
                                   ? () => setState(() => _page++)
                                   : null,
-                            ),
-                          ],
-                        );
-                      },
+                             ),
+                           ],
+                         );
+                       },
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-    );
-  }
+                ],
+              ),
+             ),
+         ],
+       ),
+     );
+   }
 }
 
 class _AdminLessonPaginationBar extends StatelessWidget {

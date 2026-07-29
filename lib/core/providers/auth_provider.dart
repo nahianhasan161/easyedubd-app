@@ -1,15 +1,30 @@
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-final supabaseProvider = Provider<SupabaseClient>((ref) {
-  return Supabase.instance.client;
+final _secureStorage = const FlutterSecureStorage();
+const _localAuthKey = 'local_auth_flag';
+
+final localAuthProvider = FutureProvider<bool>((ref) async {
+  final value = await _secureStorage.read(key: _localAuthKey);
+  return value == 'true';
 });
 
+/// Clears the persisted local-auth flag.
+Future<void> clearLocalAuth() async {
+  await _secureStorage.delete(key: _localAuthKey);
+}
+
+/// Sets the persisted local-auth flag.
+Future<void> setLocalAuth() async {
+  await _secureStorage.write(key: _localAuthKey, value: 'true');
+}
+
 final authStateProvider = StreamProvider<AuthState>((ref) {
-  final client = ref.watch(supabaseProvider);
+  final client = Supabase.instance.client;
   return client.auth.onAuthStateChange;
 });
 
