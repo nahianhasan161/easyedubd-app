@@ -7,6 +7,7 @@ class CourseCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool isEnrolled;
   final VoidCallback? onEnroll;
+  final bool isCompact;
 
   const CourseCard({
     super.key,
@@ -14,6 +15,7 @@ class CourseCard extends StatelessWidget {
     required this.onTap,
     this.isEnrolled = false,
     this.onEnroll,
+    this.isCompact = false,
   });
 
   @override
@@ -28,8 +30,23 @@ class CourseCard extends StatelessWidget {
         effectivePrice < originalPrice;
     final discountPercent = course.bestDiscountPercentage;
 
+    final titleStyle = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.bold,
+      height: 1.25,
+    );
+    final titleCompactStyle = theme.textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.bold,
+      height: 1.2,
+      fontSize: 13,
+    );
+
+    final bodyPadding = isCompact
+        ? const EdgeInsets.fromLTRB(8, 6, 8, 8)
+        : const EdgeInsets.fromLTRB(14, 12, 14, 14);
+    final titleStyleFinal = isCompact ? titleCompactStyle : titleStyle;
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: EdgeInsets.symmetric(vertical: isCompact ? 2 : 4),
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
@@ -54,7 +71,7 @@ class CourseCard extends StatelessWidget {
                   top: 0,
                   left: 0,
                   right: 0,
-                  height: 64,
+                  height: isCompact ? 40 : 64,
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -97,18 +114,19 @@ class CourseCard extends StatelessWidget {
                         ? 'FREE'
                         : 'PREMIUM',
                     gold: !isEnrolled && !isFree,
+                    isCompact: isCompact,
                   ),
                 ),
 
-                // DISCOUNT BADGE (bottom-right of image)
+                // DISCOUNT BADGE (bottom-left of image)
                 if (hasDiscount && discountPercent != null)
                   Positioned(
                     bottom: 10,
-                    right: 10,
+                    left: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 5 : 10,
+                        vertical: isCompact ? 3 : 6,
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFD32F2F),
@@ -123,11 +141,11 @@ class CourseCard extends StatelessWidget {
                       ),
                       child: Text(
                         '-${discountPercent.toStringAsFixed(0)}%',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: 0.6,
+                          fontSize: isCompact ? 10 : 16,
+                          letterSpacing: 0.4,
                         ),
                       ),
                     ),
@@ -137,204 +155,175 @@ class CourseCard extends StatelessWidget {
 
             // BODY
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              padding: bodyPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // TITLE
                   Text(
                     course.title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      height: 1.25,
-                    ),
-                    maxLines: 2,
+                    style: titleStyleFinal,
+                    maxLines: isCompact ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  const SizedBox(height: 10),
+                  SizedBox(height: isCompact ? 4 : 10),
 
-                  // LEFT/RIGHT ROW
+                  // TAGS (year + subject, one line)
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // LEFT: year, subject, description
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                if (course.year.trim().isNotEmpty)
-                                  _Tag(text: '${course.year} Year'),
-                                if (course.subject.trim().isNotEmpty)
-                                  _Tag(text: course.subject),
-                              ],
-                            ),
-
-                            const SizedBox(height: 10),
-
-                            Text(
-                              course.description,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey.shade600,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                      if (course.year.trim().isNotEmpty)
+                        _Tag(
+                          text: '${course.year} Year',
+                          isCompact: isCompact,
                         ),
-                      ),
-
-                      // RIGHT: price info
-                      if (!isFree && !isEnrolled && originalPrice != null) ...[
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            if (hasDiscount) ...[
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(12),
-                                        bottomLeft: Radius.circular(12),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '৳${originalPrice.toStringAsFixed(0)}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade600,
-                                        decoration: TextDecoration.lineThrough,
-                                        decorationColor: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '৳${effectivePrice.toStringAsFixed(0)}',
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF7A4F01),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Tooltip(
-                                    message: 'Discounted price',
-                                    child: Icon(
-                                      Icons.local_offer_rounded,
-                                      size: 18,
-                                      color: Colors.orange.shade700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'You save ৳${course.savedAmount?.toStringAsFixed(0) ?? '0'}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ] else ...[
-                              Text(
-                                '৳${originalPrice.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF7A4F01),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ] else if (!isFree &&
-                          !isEnrolled &&
-                          originalPrice == null)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Paid',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                            if (!isEnrolled && onEnroll != null) ...[
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: onEnroll,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE6A817),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'View Details',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                      if (course.year.trim().isNotEmpty &&
+                          course.subject.trim().isNotEmpty)
+                        SizedBox(width: isCompact ? 4 : 8),
+                      if (course.subject.trim().isNotEmpty)
+                        _Tag(
+                          text: course.subject,
+                          isCompact: isCompact,
                         ),
                     ],
                   ),
 
-                  // FULL-WIDTH BUTTON for priced courses
-                  if (!isFree &&
+                  // DETAILS (left) + PRICE (right)
+                  if (!isFree && !isEnrolled && originalPrice != null)
+                    Padding(
+                      padding: EdgeInsets.only(top: isCompact ? 2 : 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (onEnroll != null)
+                            Text(
+                              'Details',
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: isCompact ? 9 : 12,
+                              ),
+                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (hasDiscount) ...[
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isCompact ? 5 : 10,
+                                        vertical: isCompact ? 2 : 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(
+                                              isCompact ? 6 : 12),
+                                          bottomLeft: Radius.circular(
+                                              isCompact ? 6 : 12),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '৳${originalPrice.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          fontSize: isCompact ? 9 : 14,
+                                          color: Colors.grey.shade600,
+                                          decoration: TextDecoration.lineThrough,
+                                          decorationColor: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '৳${effectivePrice.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: isCompact ? 14 : 26,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF7A4F01),
+                                      ),
+                                    ),
+                                    SizedBox(width: isCompact ? 3 : 8),
+                                    Tooltip(
+                                      message: 'Discounted price',
+                                      child: Icon(
+                                        Icons.local_offer_rounded,
+                                        size: isCompact ? 12 : 18,
+                                        color: Colors.orange.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'You save ৳${course.savedAmount?.toStringAsFixed(0) ?? '0'}',
+                                  style: TextStyle(
+                                    fontSize: isCompact ? 9 : 12,
+                                    color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ] else ...[
+                                Text(
+                                  '৳${originalPrice.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: isCompact ? 14 : 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF7A4F01),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (!isFree &&
                       !isEnrolled &&
-                      originalPrice != null &&
-                      onEnroll != null) ...[
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: onEnroll,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6A817),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      originalPrice == null)
+                    Padding(
+                      padding: EdgeInsets.only(top: isCompact ? 2 : 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (onEnroll != null)
+                            Text(
+                              'Details',
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: isCompact ? 9 : 12,
+                              ),
+                            ),
+                          Text(
+                            'Paid',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                              fontSize: isCompact ? 10 : null,
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          'View Details',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
+                        ],
                       ),
                     ),
-                  ],
+
+                  // DESCRIPTION (full width)
+                  SizedBox(height: isCompact ? 4 : 8),
+                  Text(
+                    course.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                      fontSize: isCompact ? 10 : null,
+                      height: isCompact ? 1.3 : null,
+                    ),
+                    maxLines: isCompact ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
 
                   if (isEnrolled) ...[
-                    const SizedBox(height: 14),
+                    SizedBox(height: isCompact ? 6 : 14),
 
                     // PROGRESS
                     Row(
@@ -347,7 +336,7 @@ class CourseCard extends StatelessWidget {
                                 0.0,
                                 1.0,
                               ),
-                              minHeight: 8,
+                              minHeight: isCompact ? 6 : 8,
                               backgroundColor: Colors.grey.shade200,
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 course.completionPercentage >= 1.0
@@ -357,7 +346,7 @@ class CourseCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: isCompact ? 6 : 10),
                         Text(
                           '${(course.completionPercentage * 100).toInt()}%',
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -365,6 +354,7 @@ class CourseCard extends StatelessWidget {
                             color: course.completionPercentage >= 1.0
                                 ? Colors.green
                                 : Colors.grey.shade700,
+                            fontSize: isCompact ? 10 : null,
                           ),
                         ),
                       ],
@@ -387,6 +377,7 @@ class _Pill extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool gold;
+  final bool isCompact;
 
   const _Pill({
     this.gradient,
@@ -394,18 +385,23 @@ class _Pill extends StatelessWidget {
     required this.icon,
     required this.label,
     this.gold = false,
+    this.isCompact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 5 : 11,
+        vertical: isCompact ? 2 : 5,
+      ),
       decoration: BoxDecoration(
         gradient: gradient,
         color: color,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isCompact ? 12 : 20),
         border: gold
-            ? Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1)
+            ? Border.all(
+                color: Colors.white.withValues(alpha: 0.6), width: 1)
             : null,
         boxShadow: gold
             ? [
@@ -423,16 +419,16 @@ class _Pill extends StatelessWidget {
           Icon(
             icon,
             color: gold ? const Color(0xFF7A4F01) : Colors.white,
-            size: 14,
+            size: isCompact ? 10 : 14,
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: isCompact ? 2 : 5),
           Text(
             label,
             style: TextStyle(
               color: gold ? const Color(0xFF7A4F01) : Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
-              letterSpacing: 0.4,
+              fontSize: isCompact ? 9 : 12,
+              letterSpacing: 0.2,
             ),
           ),
         ],
@@ -444,23 +440,30 @@ class _Pill extends StatelessWidget {
 /// Small neutral tag for Year / Subject metadata.
 class _Tag extends StatelessWidget {
   final String text;
+  final bool isCompact;
 
-  const _Tag({required this.text});
+  const _Tag({
+    required this.text,
+    this.isCompact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 5 : 10,
+        vertical: isCompact ? 2 : 5,
+      ),
       decoration: BoxDecoration(
         color: Colors.green,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isCompact ? 6 : 20),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: isCompact ? 9 : 12,
         ),
       ),
     );
@@ -468,12 +471,17 @@ class _Tag extends StatelessWidget {
 }
 
 class CourseCardSkeleton extends StatelessWidget {
-  const CourseCardSkeleton({super.key});
+  final bool isCompact;
+
+  const CourseCardSkeleton({
+    super.key,
+    this.isCompact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: EdgeInsets.symmetric(vertical: isCompact ? 2 : 4),
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
@@ -485,15 +493,29 @@ class CourseCardSkeleton extends StatelessWidget {
             child: Container(color: Colors.grey.shade300),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            padding: EdgeInsets.fromLTRB(
+              isCompact ? 10 : 14,
+              isCompact ? 8 : 12,
+              isCompact ? 10 : 14,
+              isCompact ? 10 : 14,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _ShimmerBox(height: 20, width: double.infinity),
-                const SizedBox(height: 10),
-                const _ShimmerBox(height: 14, width: 120),
-                const SizedBox(height: 10),
-                const _ShimmerBox(height: 14, width: 160),
+                _ShimmerBox(
+                  height: isCompact ? 14 : 20,
+                  width: double.infinity,
+                ),
+                SizedBox(height: isCompact ? 4 : 10),
+                _ShimmerBox(
+                  height: isCompact ? 11 : 14,
+                  width: isCompact ? 100 : 120,
+                ),
+                SizedBox(height: isCompact ? 4 : 10),
+                _ShimmerBox(
+                  height: isCompact ? 11 : 14,
+                  width: isCompact ? 140 : 160,
+                ),
               ],
             ),
           ),

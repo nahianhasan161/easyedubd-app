@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:easyedubd_app/core/router/app_router.dart';
+import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
 import 'package:flutter/material.dart';
@@ -326,67 +327,89 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
 
     final loadingBody = RefreshIndicator(
       onRefresh: _refreshCourses,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _showLoadRetry ? 7 : 6,
-        itemBuilder: (context, index) {
-          if (index < 6) {
-            return const CourseCardSkeleton();
-          }
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                constraints: const BoxConstraints(maxWidth: 320),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+        slivers: [
+           SliverPadding(
+             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                 (context, index) {
+                   return Column(
+                     mainAxisSize: MainAxisSize.min,
+                     children: [
+                       Row(
+                         children: [
+                           Expanded(
+                               child: CourseCardSkeleton(isCompact: true)),
+                           const SizedBox(width: 12),
+                           Expanded(
+                               child: CourseCardSkeleton(isCompact: true)),
+                         ],
+                       ),
+                       const SizedBox(height: 12),
+                     ],
+                   );
+                 },
+                childCount: 3,
+              ),
+            ),
+          ),
+          if (_showLoadRetry)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.wifi_off_rounded,
-                      size: 48,
-                      color: Colors.grey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.wifi_off_rounded,
+                          size: 48,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Taking too long?',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please check your connection',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: () {
+                            _refreshCourses();
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Taking too long?',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Please check your connection',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: () {
-                        _refreshCourses();
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          );
-        },
+        ],
       ),
     );
 
@@ -398,35 +421,81 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
               Center(child: Text('No courses found.')),
             ],
           )
-        : ListView.builder(
+        : CustomScrollView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            itemCount:
-                courseList.courses.length + (courseList.isLoadingMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index == courseList.courses.length) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+            slivers: [
+               SliverPadding(
+                 padding:
+                     const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final startIndex = index * 2;
+                      final course1 = courseList.courses[startIndex];
+                      final course2 = startIndex + 1 < courseList.courses.length
+                          ? courseList.courses[startIndex + 1]
+                          : null;
 
-              final course = courseList.courses[index];
-              final isEnrolled =
-                  widget.enrolledOnly ||
-                      courseList.enrolledCourseIds?.contains(course.id) == true;
+                      final isEnrolled1 = widget.enrolledOnly ||
+                          courseList.enrolledCourseIds
+                              ?.contains(course1.id) == true;
 
-              return CourseCard(
-                course: course,
-                isEnrolled: isEnrolled || course.is_free,
-                onTap: () {
-                  context.push('/course/${course.id}');
-                },
-                onEnroll: () {
-                  context.push('/course/${course.id}');
-                },
-              );
-            },
+                      Widget buildCard(Course course, bool isEnrolled) {
+                        return CourseCard(
+                          course: course,
+                          isEnrolled: isEnrolled || course.is_free,
+                          isCompact: true,
+                          onTap: () {
+                            context.push('/course/${course.id}');
+                          },
+                          onEnroll: () {
+                            context.push('/course/${course.id}');
+                          },
+                        );
+                      }
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: buildCard(
+                                  course1,
+                                  isEnrolled1 || course1.is_free,
+                                ),
+                              ),
+                              if (course2 != null) ...[
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: buildCard(
+                                    course2,
+                                    widget.enrolledOnly ||
+                                        courseList.enrolledCourseIds
+                                            ?.contains(course2.id) == true ||
+                                        course2.is_free,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                    childCount: (courseList.courses.length / 2).ceil(),
+                  ),
+                ),
+              ),
+              if (courseList.isLoadingMore)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+            ],
           );
 
     final child = courseList.isInitialLoading
