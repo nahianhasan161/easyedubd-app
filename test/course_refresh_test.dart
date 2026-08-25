@@ -34,6 +34,7 @@ class FakeCourseRepository extends CourseRepository {
     String? subject,
     String? type,
     bool includeChapters = true,
+    bool forceRefresh = false,
   }) async =>
       courses
           .skip(offset)
@@ -60,6 +61,7 @@ class FakeCourseRepository extends CourseRepository {
   Future<List<Course>> getCoursesByIds(
     List<int> ids, {
     bool includeChapters = false,
+    bool forceRefresh = false,
   }) async =>
       courses.where((c) => ids.contains(c.id)).toList();
 }

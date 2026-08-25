@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easyedubd_app/core/device/device_provider.dart';
 import 'package:easyedubd_app/core/device/device_repository.dart';
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,6 +83,11 @@ class StartupController extends AsyncNotifier<AppStartupState> {
       return AppStartupState.unauthenticated;
     }
 
+    // If we're offline, trust the cached/local session and skip the network
+    // checks that would otherwise timeout and incorrectly bounce the user
+    // back to the device-pending / login screens.
+    final isOffline = _isOffline();
+
     final deviceService = ref.read(deviceServiceProvider);
     final deviceInfo = await deviceService.getDeviceInfo().timeout(
       _deviceInfoTimeout,
@@ -88,12 +95,36 @@ class StartupController extends AsyncNotifier<AppStartupState> {
     );
 
     final deviceRepository = ref.read(deviceRepositoryProvider);
+
+    if (isOffline) {
+      // Cannot verify the device right now, but a valid session is present
+      // and the device was previously approved (otherwise we wouldn't have
+      // a session in the first place). Stay authenticated so the user can
+      // browse from the local cache.
+      //
+      // We also skip the profile check: a user who was previously
+      // authenticated has necessarily passed profile-onboarding, and
+      // re-running it offline would falsely bounce them to the onboarding
+      // screen if the profile query times out.
+      return AppStartupState.authenticated;
+    }
+
     DeviceVerificationResult deviceResult;
     try {
       deviceResult = await deviceRepository
           .verifyCurrentDevice(deviceInfo)
           .timeout(_verifyDeviceTimeout);
     } on TimeoutException {
+      // Don't know if the device is still approved. Keep the user signed in
+      // (they have a valid session) and let them browse from the cache.
+      return AppStartupState.authenticated;
+    } catch (e) {
+      // Network error reaching Supabase - treat like offline: keep the user
+      // signed in so they can keep reading cached content.
+      if (_isNetworkError(e)) {
+        return AppStartupState.authenticated;
+      }
+      // Genuine server-side rejection (e.g. device revoked). Surface it.
       return AppStartupState.pendingDevice;
     }
 
@@ -106,13 +137,30 @@ class StartupController extends AsyncNotifier<AppStartupState> {
         break;
     }
 
+    return _checkProfileOrAuthenticated(session, deviceInfo);
+  }
+
+  /// Fallback profile check used when device verification succeeds.
+  /// Treats any failure to fetch the profile as "incomplete" unless the
+  /// device is offline, in which case we trust the existing session.
+  Future<AppStartupState> _checkProfileOrAuthenticated(
+    Session session,
+    dynamic deviceInfo,
+  ) async {
+    if (_isOffline()) {
+      return AppStartupState.authenticated;
+    }
+
     final profileRepository = ref.read(profileRepositoryProvider);
     Profile? profile;
     try {
       profile = await profileRepository
           .getProfile(session.user.id)
           .timeout(_profileTimeout, onTimeout: () => null);
-    } catch (_) {
+    } catch (e) {
+      if (_isNetworkError(e)) {
+        return AppStartupState.authenticated;
+      }
       profile = null;
     }
 
@@ -122,6 +170,24 @@ class StartupController extends AsyncNotifier<AppStartupState> {
     }
 
     return AppStartupState.authenticated;
+  }
+
+  bool _isOffline() {
+    final connectivity = ref.read(connectivityProvider);
+    final results = connectivity.value;
+    if (results == null) return false; // unknown → don't assume offline
+    return results.every((r) => r == ConnectivityResult.none);
+  }
+
+  bool _isNetworkError(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('socket') ||
+        s.contains('network') ||
+        s.contains('connection') ||
+        s.contains('timeout') ||
+        s.contains('failed host lookup') ||
+        s.contains('no address') ||
+        s.contains('clientexception');
   }
 
   bool _isProfileComplete(Profile? profile) {

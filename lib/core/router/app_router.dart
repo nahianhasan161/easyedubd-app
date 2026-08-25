@@ -242,8 +242,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/lesson',
 
         builder: (context, state) {
-          final title = state.extra as String?;
-          return LessonComingSoonScreen(title: title ?? '');
+          // The "extra" can be either a plain String title (when called
+          // from inside the player) or a full LessonPlayerArgs (when
+          // called from the course details screen). Handle both so the
+          // cast doesn't blow up.
+          final extra = state.extra;
+          String title;
+          if (extra is LessonPlayerArgs) {
+            title = extra.title;
+          } else if (extra is String) {
+            title = extra;
+          } else {
+            title = '';
+          }
+          return LessonComingSoonScreen(title: title);
         },
       ),
 

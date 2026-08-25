@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:easyedubd_app/core/cache/realtime_cache_invalidator.dart';
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/services/screen_security_service.dart';
 import 'package:easyedubd_app/core/startup/startup_controller.dart';
@@ -25,6 +26,7 @@ class AppLifecycleHandler extends ConsumerStatefulWidget {
 class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
     with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  StreamSubscription<void>? _invalidationSubscription;
 
   @override
   void initState() {
@@ -45,13 +47,29 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
         } catch (_) {}
       }
     });
+
+    // React to realtime cache invalidations by re-fetching from Supabase.
+    _invalidationSubscription =
+        RealtimeCacheInvalidator.invalidations.listen((_) {
+      if (!mounted) return;
+      _onCacheInvalidated();
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription?.cancel();
+    _invalidationSubscription?.cancel();
     super.dispose();
+  }
+
+  void _onCacheInvalidated() {
+    final isOffline = ref.read(isOfflineProvider);
+    if (isOffline) return; // wait until we have connectivity to refresh
+    ref.invalidate(enrolledCourseIdsProvider);
+    ref.read(courseListProvider(false).notifier).loadInitial();
+    ref.read(courseListProvider(true).notifier).loadInitial();
   }
 
   @override
@@ -62,6 +80,16 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
     // Some Android OEMs reset the secure flag once the app is backgrounded,
     // so re-apply screenshot / data-leakage protection on every resume.
     await ScreenSecurityService.reapply();
+
+    // Kick the cache-version poller immediately on resume. It self-skips
+    // when offline and is debounced internally, so this is safe.
+    RealtimeCacheInvalidator.checkNow();
+
+    // If we're offline, don't try to re-verify the device or refetch data -
+    // the cache is still valid. Just stay on the current screen.
+    final isOffline = ref.read(isOfflineProvider);
+    if (isOffline) return;
+
     final result = await ref.read(startupProvider.notifier).recheckOnResume();
     debugPrint("INITIALIZE RESULT: $result");
     if (!mounted) return;
@@ -112,34 +140,10 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
 
   @override
   Widget build(BuildContext context) {
-    final isOffline = ref.watch(isOfflineProvider);
-
-    return Stack(
-      children: [
-        widget.child,
-        if (isOffline)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              color: Theme.of(context).colorScheme.error,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: const Row(
-                children: [
-                  Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'No internet connection',
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
+    // The offline banner is rendered inside each screen (e.g. below the
+    // filter row / below the AppBar in CourseListScreen) rather than as a
+    // global overlay here, so it can be placed contextually and so it does
+    // not affect the bottom navigation bar's layout.
+    return widget.child;
   }
 }

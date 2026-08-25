@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/router/app_router.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
@@ -292,12 +293,25 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
   }
 
   Future<void> _refreshCourses() async {
-    if (widget.enrolledOnly) {
-      ref.invalidate(enrolledCourseIdsProvider);
+    // Always invalidate the enrollment set so the in-memory "filter out
+    // enrolled courses" pass inside _fetchPage doesn't accidentally hide a
+    // newly-created course with a stale cached enrollment list (e.g. the
+    // admin who created the course was auto-enrolled in it, or the new
+    // course is covered by a bundle the user is in). We then wait for the
+    // freshest value to land before the force-refetch so the filter uses
+    // up-to-date data.
+    ref.invalidate(enrolledCourseIdsProvider);
+    try {
+      await ref.read(enrolledCourseIdsProvider.future);
+    } catch (_) {
+      // If the network call fails (offline, timeout) we still proceed with
+      // whatever enrollment data is currently in state — the catch in
+      // _fetchPage will keep the existing list visible.
     }
+
     await ref
         .read(courseListProvider(widget.enrolledOnly).notifier)
-        .loadInitial();
+        .loadInitial(forceRefresh: true);
 
     if (mounted) {
       _startLoadTimerIfNeeded();
@@ -310,6 +324,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
     routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute<dynamic>);
 
     final courseList = ref.watch(courseListProvider(widget.enrolledOnly));
+    final isOffline = ref.watch(isOfflineProvider);
 
     if (courseList.isInitialLoading) {
       _startLoadTimerIfNeeded();
@@ -498,43 +513,13 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
             ],
           );
 
-    final child = courseList.isInitialLoading
-        ? loadingBody
-        : courseList.error != null
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  const SizedBox(height: 120),
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.cloud_off_outlined,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Could not load courses.\nPlease check your connection and try again.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () => ref
-                              .read(courseListProvider(widget.enrolledOnly)
-                                  .notifier)
-                              .loadInitial(),
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            : listChild;
+    final child = _selectBody(
+      context: context,
+      courseList: courseList,
+      isOffline: isOffline,
+      loadingBody: loadingBody,
+      listChild: listChild,
+    );
 
     final body = RefreshIndicator(
       onRefresh: _refreshCourses,
@@ -544,6 +529,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
     final content = Column(
       children: [
         if (!widget.enrolledOnly) _buildTopFilters(),
+        if (isOffline) _buildOfflineBanner(),
         Expanded(child: body),
       ],
     );
@@ -557,8 +543,240 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
         title: Text(widget.enrolledOnly ? 'My Courses' : 'All Courses'),
         centerTitle: false,
         elevation: 0,
+        bottom: isOffline && widget.enrolledOnly
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(36),
+                child: _buildOfflineBanner(),
+              )
+            : null,
       ),
       body: content,
+    );
+  }
+
+  /// Amber banner shown when the device is offline. Sits below the filter
+  /// row on "All Courses" and below the AppBar on "My Courses" so the
+  /// user can see both the banner and the content it refers to.
+  Widget _buildOfflineBanner() {
+    return Material(
+      color: Colors.amber.shade700,
+      child: SafeArea(
+        top: false,
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: const [
+              Icon(
+                Icons.wifi_off_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'No internet — showing cached data',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Decides which body to render. When the user is offline we deliberately
+  /// avoid showing the spinner or the "Could not load courses" error — those
+  /// only make sense while we are actively trying to reach Supabase. Instead
+  /// we show a calm offline notice, and the cached data (if any) above it.
+  Widget _selectBody({
+    required BuildContext context,
+    required CourseListState courseList,
+    required bool isOffline,
+    required Widget loadingBody,
+    required Widget listChild,
+  }) {
+    // While online, keep the existing behaviour: spinner → error → list.
+    if (!isOffline) {
+      if (courseList.isInitialLoading) return loadingBody;
+      if (courseList.error != null) return _buildErrorView(context, courseList);
+      return listChild;
+    }
+
+    // Offline path.
+    if (courseList.courses.isNotEmpty) {
+      // Cached courses are available — show them with a small note.
+      return Stack(
+        children: [
+          listChild,
+          if (courseList.isLoadingMore)
+            const Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+        ],
+      );
+    }
+
+    if (courseList.isInitialLoading) {
+      return _buildOfflineMessage(
+        context,
+        title: widget.enrolledOnly
+            ? 'Loading your courses…'
+            : 'Loading courses…',
+        message: widget.enrolledOnly
+            ? 'We couldn\'t read your enrolled courses from cache. Reconnect to retry.'
+            : 'We couldn\'t read the course list from cache. Reconnect to load fresh data.',
+        showSpinner: true,
+      );
+    }
+
+    if (courseList.error != null) {
+      return _buildOfflineMessage(
+        context,
+        title: 'You\'re offline',
+        message: widget.enrolledOnly
+            ? 'No cached enrollment data is available. Reconnect to see your courses.'
+            : 'No cached courses are available. Reconnect to browse the catalog.',
+        showSpinner: false,
+      );
+    }
+
+    // Offline and no error and not loading — empty cache.
+    return _buildOfflineMessage(
+      context,
+      title: 'Nothing cached yet',
+      message: widget.enrolledOnly
+          ? 'Open this tab while online at least once to cache your courses for offline use.'
+          : 'Open this tab while online at least once to cache courses for offline browsing.',
+      showSpinner: false,
+    );
+  }
+
+  Widget _buildErrorView(BuildContext context, CourseListState courseList) {
+    final errorText = courseList.error ?? 'Unknown error';
+    final isTimeout = errorText.toLowerCase().contains('timeout');
+    final isOffline = ref.watch(isOfflineProvider);
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 80),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isOffline ? Icons.wifi_off_rounded : Icons.cloud_off_outlined,
+                size: 48,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isOffline
+                    ? 'You\'re offline'
+                    : 'Could not load courses',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  isOffline
+                      ? 'Connect to the internet and tap retry to load fresh data.'
+                      : isTimeout
+                          ? 'The request took too long. Please check your connection and try again.'
+                          : 'Something went wrong. Please try again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ),
+              // Show the raw error in tiny text so we can diagnose issues
+              // without leaving the app.
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  errorText,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () async {
+                  // Invalidate enrolled IDs too so the whole pipeline
+                  // re-fetches fresh data.
+                  ref.invalidate(enrolledCourseIdsProvider);
+                  await ref
+                      .read(courseListProvider(widget.enrolledOnly).notifier)
+                      .loadInitial();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOfflineMessage(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required bool showSpinner,
+  }) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 120),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showSpinner)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: CircularProgressIndicator(),
+                )
+              else
+                const Icon(
+                  Icons.cloud_off_outlined,
+                  size: 48,
+                  color: Colors.grey,
+                ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

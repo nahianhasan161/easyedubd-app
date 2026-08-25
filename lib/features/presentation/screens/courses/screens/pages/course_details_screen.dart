@@ -36,323 +36,444 @@ class CourseDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final courseAsync = ref.watch(courseByIdProvider(courseId));
-    final enrolledCourseIdsAsync = ref.watch(enrolledCourseIdsProvider);
     final accessService = CourseAccessService();
 
     return courseAsync.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text(e.toString()))),
-
+      // Don't block the whole page with a spinner — show a skeleton that
+      // matches the real layout so the screen feels instant.
+      loading: () => _CourseDetailsSkeleton(courseId: courseId),
+      error: (e, _) => Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.cloud_off_outlined, size: 48, color: Colors.grey),
+                const SizedBox(height: 12),
+                const Text(
+                  'Could not load this course.\nPlease check your connection and try again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => ref.invalidate(courseByIdProvider(courseId)),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       data: (course) {
         if (course == null) {
-          return const Scaffold(body: Center(child: Text('Course not found')));
+          return Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.pop(),
+              ),
+            ),
+            body: const Center(child: Text('Course not found')),
+          );
         }
 
-        return enrolledCourseIdsAsync.when(
-          loading: () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, _) => Scaffold(body: Center(child: Text(e.toString()))),
-          data: (enrolledCourseIds) {
-            // TEMP (replace later with Supabase)
-            final hasCourseEnrollment = enrolledCourseIds.contains(course.id);
+        // For enrolledCourseIds we don't block rendering. While the
+        // provider is still resolving (or if it errors out) we just
+        // assume the user is not enrolled, which is the safe default.
+        final enrolledCourseIdsAsync = ref.watch(enrolledCourseIdsProvider);
+        final Set<int> enrolledCourseIds = enrolledCourseIdsAsync.maybeWhen(
+          data: (ids) => ids,
+          orElse: () => <int>{},
+        );
 
-            return Scaffold(
-              appBar: AppBar(
-                title: Text(course.title),
+        final hasCourseEnrollment = enrolledCourseIds.contains(course.id);
 
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-
-                  onPressed: () => context.pop(),
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(course.title),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+          ),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(courseByIdProvider(courseId));
+              await ref.read(courseByIdProvider(courseId).future);
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 200,
+                  automaticallyImplyLeading: false,
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: AppCachedImage(
+                      url: course.imageUrl,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-              ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          course.description,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        _CourseProgressBar(course: course),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final chapter = course.chapters[index];
 
-              body: RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(courseByIdProvider(courseId));
-                  await ref.read(courseByIdProvider(courseId).future);
-                },
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverAppBar(
-                      expandedHeight: 200,
-                      automaticallyImplyLeading: false,
-                      pinned: true,
+                    final totalMinutes = chapter.lessons.fold<int>(
+                      0,
+                      (sum, lesson) => sum + lesson.duration.inMinutes,
+                    );
 
-                      flexibleSpace: FlexibleSpaceBar(
-                        /*  title: Text(course.title), */
-                        background: AppCachedImage(
-                          url: course.imageUrl,
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Card(
+                        elevation: 2,
+                        shadowColor: Colors.black12,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: ExpansionTile(
+                            tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                            childrenPadding: const EdgeInsets.only(
+                              left: 12,
+                              right: 12,
+                              bottom: 12,
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              child: Text(
+                                "${index + 1}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              chapter.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            ),
+                            subtitle: Text(
+                              "${chapter.lessons.length} Lessons • $totalMinutes mins",
+                            ),
+                            children: chapter.lessons.map((lesson) {
+                              final canWatch = accessService.canWatchLesson(
+                                isFree: course.is_free,
+                                hasCourseEnrollment: hasCourseEnrollment,
+                                hasBundleEnrollment: false,
+                              );
 
-                          fit: BoxFit.cover,
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Material(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: ListTile(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    title: Text(
+                                      lesson.title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    subtitle: Row(
+                                      children: [
+                                        if (lesson.videoId.isNotEmpty) ...[
+                                          Text(
+                                            "${lesson.duration.inMinutes} min",
+                                          ),
+                                        ],
+                                        if (canWatch && lesson.videoId.isEmpty) ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.shade100,
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              'Coming Soon',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.orange.shade800,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    leading: CircleAvatar(
+                                      radius: 18,
+                                      backgroundColor: !canWatch
+                                          ? Colors.red.shade100
+                                          : lesson.videoId.isEmpty
+                                              ? Colors.orange.shade100
+                                              : Colors.green.shade100,
+                                      child: Icon(
+                                        !canWatch
+                                            ? Icons.lock_rounded
+                                            : lesson.videoId.isEmpty
+                                                ? Icons.schedule_rounded
+                                                : Icons.play_arrow_rounded,
+                                        color: !canWatch
+                                            ? Colors.red
+                                            : lesson.videoId.isEmpty
+                                                ? Colors.orange
+                                                : Colors.green,
+                                      ),
+                                    ),
+                                    trailing: Icon(
+                                      canWatch
+                                          ? lesson.videoId.isEmpty
+                                              ? Icons.hourglass_empty_rounded
+                                              : Icons.arrow_forward_ios_rounded
+                                          : Icons.lock_outline_rounded,
+                                      size: 18,
+                                      color: Colors.grey,
+                                    ),
+                                    onTap: () {
+                                      if (!canWatch) {
+                                        _showLockedDialog(context);
+                                        return;
+                                      }
+
+                                      final previousChapter = index > 0
+                                          ? ChapterNav(
+                                              id: course.chapters[index - 1].id,
+                                              title: course.chapters[index - 1].title,
+                                            )
+                                          : null;
+                                      final nextChapter =
+                                          index < course.chapters.length - 1
+                                              ? ChapterNav(
+                                                  id: course.chapters[index + 1].id,
+                                                  title: course.chapters[index + 1].title,
+                                                )
+                                              : null;
+
+                                      final args = LessonPlayerArgs(
+                                        title: lesson.title,
+                                        courseId: course.id,
+                                        chapterId: chapter.id,
+                                        chapterTitle: chapter.title,
+                                        lessonId: lesson.id,
+                                        lessonsInChapter: chapter.lessons,
+                                        allChapters: course.chapters,
+                                        previousChapter: previousChapter,
+                                        nextChapter: nextChapter,
+                                      );
+
+                                      if (lesson.videoId.isEmpty) {
+                                        context.push(
+                                          '/lesson',
+                                          extra: lesson.title,
+                                        );
+                                      } else {
+                                        context.push(
+                                          '/lesson/${lesson.videoId}',
+                                          extra: args,
+                                        );
+                                      }
+
+                                      Future.delayed(const Duration(milliseconds: 300), () async {
+                                        if (context.mounted) {
+                                          ref.invalidate(courseByIdProvider(courseId));
+                                          await ref.read(courseByIdProvider(courseId).future);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ),
-                    ),
+                    );
+                  }, childCount: course.chapters.length),
+                ),
+              ],
+            ),
+          ),
 
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
+          floatingActionButton:
+              !hasCourseEnrollment &&
+                  !course.is_free &&
+                  course.price != null
+              ? FloatingActionButton.extended(
+                  onPressed: () async {
+                    // 1. Capture the event in PostHog
+                    await Posthog().capture(
+                      eventName: 'enroll_button_clicked',
+                      properties: {
+                        'course_title': course.title,
+                        'original_price': course.price!.toStringAsFixed(0),
+                        'offer_price': (course.price! * 0.8)
+                            .toStringAsFixed(0),
+                      },
+                    );
+
+                    final offerPrice = (course.price! * 0.8)
+                        .toStringAsFixed(0);
+                    final message = Uri.encodeComponent(
+                      'Hello, I want to enroll in ${course.title}. Price: ৳$offerPrice',
+                    );
+                    launchUrl(
+                      Uri.parse(
+                        'https://wa.me/8801628424161?text=$message',
+                      ),
+                    );
+                  },
+                  backgroundColor: const Color(0xFFE6A817),
+                  icon: const Icon(Icons.telegram, color: Colors.white),
+                  label: Text(
+                    'Enroll Now ৳${(course.price! * 0.8).toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                )
+              : null,
+        );
+      },
+    );
+  }
+}
+
+/// Skeleton placeholder that mirrors the real course-details layout so the
+/// page renders instantly instead of being blocked by a centred spinner.
+class _CourseDetailsSkeleton extends StatelessWidget {
+  final int courseId;
+  const _CourseDetailsSkeleton({required this.courseId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+      ),
+      body: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // Image header placeholder
+          Container(
+            height: 200,
+            color: Colors.grey.shade300,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _skeletonLine(height: 18, width: double.infinity),
+                const SizedBox(height: 8),
+                _skeletonLine(height: 14, width: 240),
+                const SizedBox(height: 16),
+                _skeletonLine(height: 10, width: double.infinity),
+                const SizedBox(height: 6),
+                _skeletonLine(height: 10, width: 200),
+              ],
+            ),
+          ),
+          // 3 fake chapter cards
+          for (int i = 0; i < 3; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Card(
+                elevation: 2,
+                shadowColor: Colors.black12,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              course.description,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 16),
-                            _CourseProgressBar(course: course),
+                            _skeletonLine(height: 14, width: 180),
+                            const SizedBox(height: 8),
+                            _skeletonLine(height: 11, width: 120),
                           ],
                         ),
                       ),
-                    ),
-
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final chapter = course.chapters[index];
-
-                        final totalMinutes = chapter.lessons.fold<int>(
-                          0,
-                          (sum, lesson) => sum + lesson.duration.inMinutes,
-                        );
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: Card(
-                            elevation: 2,
-                            shadowColor: Colors.black12,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(18),
-                              child: ExpansionTile(
-                                tilePadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 10,
-                                ),
-                                childrenPadding: const EdgeInsets.only(
-                                  left: 12,
-                                  right: 12,
-                                  bottom: 12,
-                                ),
-                                leading: CircleAvatar(
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary,
-                                  child: Text(
-                                    "${index + 1}",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  chapter.title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 17,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "${chapter.lessons.length} Lessons • $totalMinutes mins",
-                                ),
-                                children: chapter.lessons.map((lesson) {
-                                  final canWatch = accessService.canWatchLesson(
-                                    isFree: course.is_free,
-                                    hasCourseEnrollment: hasCourseEnrollment,
-                                    hasBundleEnrollment: false,
-                                  );
-
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Material(
-                                      color: Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(14),
-                                      child: ListTile(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                        ),
-                                        title: Text(
-                                          lesson.title,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        subtitle: Row(
-                                          children: [
-                                            if (lesson.videoId.isNotEmpty) ...[
-                                              Text(
-                                                "${lesson.duration.inMinutes} min",
-                                              ),
-                                            ],
-                                            if (canWatch && lesson.videoId.isEmpty) ...[
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.orange.shade100,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  'Coming Soon',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Colors.orange.shade800,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                        leading: CircleAvatar(
-                                          radius: 18,
-                                          backgroundColor: !canWatch
-                                              ? Colors.red.shade100
-                                              : lesson.videoId.isEmpty
-                                                  ? Colors.orange.shade100
-                                                  : Colors.green.shade100,
-                                          child: Icon(
-                                            !canWatch
-                                                ? Icons.lock_rounded
-                                                : lesson.videoId.isEmpty
-                                                    ? Icons.schedule_rounded
-                                                    : Icons.play_arrow_rounded,
-                                            color: !canWatch
-                                                ? Colors.red
-                                                : lesson.videoId.isEmpty
-                                                    ? Colors.orange
-                                                    : Colors.green,
-                                          ),
-                                        ),
-                                        trailing: Icon(
-                                          canWatch
-                                              ? lesson.videoId.isEmpty
-                                                  ? Icons.hourglass_empty_rounded
-                                                  : Icons.arrow_forward_ios_rounded
-                                              : Icons.lock_outline_rounded,
-                                          size: 18,
-                                          color: Colors.grey,
-                                        ),
-                                        onTap: () {
-                                          if (!canWatch) {
-                                            _showLockedDialog(context);
-                                            return;
-                                          }
-
-                                          final previousChapter = index > 0
-                                              ? ChapterNav(
-                                                  id: course.chapters[index - 1].id,
-                                                  title: course.chapters[index - 1].title,
-                                                )
-                                              : null;
-                                          final nextChapter =
-                                              index < course.chapters.length - 1
-                                                  ? ChapterNav(
-                                                      id: course.chapters[index + 1].id,
-                                                      title: course.chapters[index + 1].title,
-                                                    )
-                                                  : null;
-
-                                          final args = LessonPlayerArgs(
-                                            title: lesson.title,
-                                            courseId: course.id,
-                                            chapterId: chapter.id,
-                                            chapterTitle: chapter.title,
-                                            lessonId: lesson.id,
-                                            lessonsInChapter: chapter.lessons,
-                                            allChapters: course.chapters,
-                                            previousChapter: previousChapter,
-                                            nextChapter: nextChapter,
-                                          );
-
-                                          if (lesson.videoId.isEmpty) {
-                                            context.push(
-                                              '/lesson',
-                                              extra: args,
-                                            );
-                                          } else {
-                                            context.push(
-                                              '/lesson/${lesson.videoId}',
-                                              extra: args,
-                                            );
-                                          }
-
-                                          Future.delayed(const Duration(milliseconds: 300), () async {
-                                            if (context.mounted) {
-                                              ref.invalidate(courseByIdProvider(courseId));
-                                              await ref.read(courseByIdProvider(courseId).future);
-                                            }
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                        );
-                      }, childCount: course.chapters.length),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+            ),
+        ],
+      ),
+    );
+  }
 
-              floatingActionButton:
-                  !hasCourseEnrollment &&
-                      !course.is_free &&
-                      course.price != null
-                  ? FloatingActionButton.extended(
-                      onPressed: () async {
-                        // 1. Capture the event in PostHog
-                        await Posthog().capture(
-                          eventName: 'enroll_button_clicked',
-                          properties: {
-                            'course_title': course.title,
-                            'original_price': course.price!.toStringAsFixed(0),
-                            'offer_price': (course.price! * 0.8)
-                                .toStringAsFixed(0),
-                          },
-                        );
-
-                        final offerPrice = (course.price! * 0.8)
-                            .toStringAsFixed(0);
-                        final message = Uri.encodeComponent(
-                          'Hello, I want to enroll in ${course.title}. Price: ৳$offerPrice',
-                        );
-                        launchUrl(
-                          Uri.parse(
-                            'https://wa.me/8801628424161?text=$message',
-                          ),
-                        );
-                      },
-                      backgroundColor: const Color(0xFFE6A817),
-                      icon: const Icon(Icons.telegram, color: Colors.white),
-                      label: Text(
-                        'Enroll Now ৳${(course.price! * 0.8).toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    )
-                  : null,
-            );
-          },
-        );
-      },
+  Widget _skeletonLine({required double height, required double width}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(4),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:easyedubd_app/core/cache/cache_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EnrollmentRepository {
@@ -11,6 +12,23 @@ class EnrollmentRepository {
     final user = _supabase.auth.currentUser;
 
     if (user == null) return {};
+
+    final cacheKey = CacheService.enrollmentKey(user.id);
+
+    // Try cache first - this is critical for offline mode.
+    final cached = CacheService.getEnrollment(cacheKey);
+    if (cached != null) {
+      try {
+        final normalized = CacheService.normalize(cached) as List;
+        return normalized
+            .map((e) => (e as num).toInt())
+            .toSet();
+      } catch (e) {
+        // Bad cache entry — drop it and fall through to the network call.
+        // ignore: avoid_print
+        print('Corrupt enrollment cache for $cacheKey, dropping: $e');
+      }
+    }
 
     final Set<int> courseIds = {};
 
@@ -66,6 +84,9 @@ class EnrollmentRepository {
         }
       }
     }
+
+    // Cache the result for offline browsing.
+    await CacheService.putEnrollment(cacheKey, courseIds.toList());
 
     return courseIds;
   }
