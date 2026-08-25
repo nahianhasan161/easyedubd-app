@@ -50,10 +50,17 @@ class CacheService {
     int? offset,
     int? limit,
     bool includeChapters = true,
+    String? search,
   }) {
     if (courseId != null) return 'course_$courseId';
+    // Normalize search so equivalent queries ("  Math " vs "math") share
+    // a cache entry.
+    final normalizedSearch = (search == null || search.trim().isEmpty)
+        ? 'all'
+        : search.trim().toLowerCase();
     return 'list_${year ?? 'all'}_${subject ?? 'all'}_${type ?? 'all'}_'
-        '${offset ?? 0}_${limit ?? 0}_$includeChapters';
+        '${offset ?? 0}_${limit ?? 0}_$includeChapters'
+        '_$normalizedSearch';
   }
 
   static Future<void> invalidateAllCourses() async {

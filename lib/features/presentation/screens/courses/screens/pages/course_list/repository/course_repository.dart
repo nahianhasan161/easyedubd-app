@@ -19,7 +19,11 @@ class CourseRepository {
     String? type,
     bool includeChapters = true,
     bool forceRefresh = false,
+    String? search,
   }) async {
+    final trimmedSearch = (search == null || search.trim().isEmpty)
+        ? null
+        : search.trim();
     final cacheKey = CacheService.courseKey(
       year: year,
       subject: subject,
@@ -27,6 +31,7 @@ class CourseRepository {
       offset: offset,
       limit: limit,
       includeChapters: includeChapters,
+      search: trimmedSearch,
     );
 
     // Try cache first (unless caller forced a network refresh, e.g. the
@@ -77,6 +82,17 @@ class CourseRepository {
         } else if (type == 'Paid') {
           query = query.eq('is_free', false);
         }
+      }
+
+      if (trimmedSearch != null) {
+        // PostgREST: escape % and _ so user input is treated literally, then
+        // wrap in %...% for substring match across title and description.
+        final escaped = trimmedSearch
+            .replaceAll('\\', '\\\\')
+            .replaceAll('%', '\\%')
+            .replaceAll('_', '\\_');
+        final pattern = '%$escaped%';
+        query = query.or('title.ilike.$pattern,description.ilike.$pattern');
       }
 
       var ordered = query

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
@@ -16,6 +18,7 @@ class CourseListState {
   final String year;
   final String subject;
   final String type;
+  final String searchQuery;
   final Set<int>? enrolledCourseIds;
 
   const CourseListState({
@@ -29,6 +32,7 @@ class CourseListState {
     this.year = 'All',
     this.subject = 'All',
     this.type = 'All',
+    this.searchQuery = '',
     this.enrolledCourseIds,
   });
 
@@ -43,6 +47,7 @@ class CourseListState {
     String? year,
     String? subject,
     String? type,
+    String? searchQuery,
     Set<int>? enrolledCourseIds,
   }) {
     return CourseListState(
@@ -56,6 +61,7 @@ class CourseListState {
       year: year ?? this.year,
       subject: subject ?? this.subject,
       type: type ?? this.type,
+      searchQuery: searchQuery ?? this.searchQuery,
       enrolledCourseIds: enrolledCourseIds ?? this.enrolledCourseIds,
     );
   }
@@ -67,14 +73,19 @@ class CourseListNotifier extends Notifier<CourseListState> {
   final bool enrolledOnly;
 
   late final CourseRepository _repository;
+  Timer? _searchDebounce;
 
   @override
   CourseListState build() {
     _repository = ref.read(courseRepositoryProvider);
+    ref.onDispose(() {
+      _searchDebounce?.cancel();
+    });
     return const CourseListState(isInitialLoading: true);
   }
 
   static const int pageSize = 10;
+  static const Duration _searchDebounceDuration = Duration(milliseconds: 350);
 
   Future<void> loadInitial({bool forceRefresh = false}) async {
     state = state.copyWith(
@@ -101,8 +112,23 @@ class CourseListNotifier extends Notifier<CourseListState> {
     await _fetchPage(state.page + 1);
   }
 
+  /// Update the search query. The actual network / cache fetch is debounced
+  /// so we don't fire a request on every keystroke.
+  void setSearchQuery(String value) {
+    final trimmed = value;
+    if (trimmed == state.searchQuery) return;
+    state = state.copyWith(searchQuery: trimmed);
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(_searchDebounceDuration, () {
+      loadInitial();
+    });
+  }
+
 Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
     final isOffline = ref.read(isOfflineProvider);
+    final search = state.searchQuery.trim().isEmpty
+        ? null
+        : state.searchQuery.trim();
     try {
       if (enrolledOnly) {
         final ids = state.enrolledCourseIds;
@@ -114,7 +140,10 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
                 forceRefresh: forceRefresh,
               );
 
-        final courses = page == 0 ? fetched : [...state.courses, ...fetched];
+        // Apply client-side search so the "My Courses" tab also respects it.
+        final searched = _applyClientSearch(fetched, search);
+
+        final courses = page == 0 ? searched : [...state.courses, ...searched];
 
         state = state.copyWith(
           courses: courses,
@@ -139,14 +168,15 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
 
       // Apply the year / subject / type filter on top.
       final filtered = _applyClientFilters(withoutEnrolled);
+      final searched = _applyClientSearch(filtered, search);
 
       // Simulate pagination: pageSize at a time.
       final start = page * pageSize;
-      final end = (start + pageSize).clamp(0, filtered.length);
-      final pageItems = start >= filtered.length
+      final end = (start + pageSize).clamp(0, searched.length);
+      final pageItems = start >= searched.length
           ? <Course>[]
-          : filtered.sublist(start, end);
-      final hasMoreData = end < filtered.length;
+          : searched.sublist(start, end);
+      final hasMoreData = end < searched.length;
 
       final courses = page == 0 ? pageItems : [...state.courses, ...pageItems];
 
@@ -171,6 +201,7 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
         type: state.type,
         includeChapters: false,
         forceRefresh: forceRefresh,
+        search: search,
       );
 
       // Hide enrolled courses from the "All Courses" tab so they only
@@ -238,6 +269,18 @@ List<Course> _applyClientFilters(List<Course> source) {
   }).toList();
 }
 
+/// Applies the free-text search in-memory (used offline and for the
+/// enrolled-only tab, where we can't rely on a server-side query).
+List<Course> _applyClientSearch(List<Course> source, String? search) {
+  final q = search?.trim().toLowerCase();
+  if (q == null || q.isEmpty) return source;
+  return source.where((course) {
+    final title = course.title.toLowerCase();
+    final description = course.description.toLowerCase();
+    return title.contains(q) || description.contains(q);
+  }).toList();
+}
+
   void updateFilters({String? year, String? subject, String? type}) {
     final nextYear = year ?? state.year;
     final nextSubject = subject ?? state.subject;
@@ -265,13 +308,16 @@ List<Course> _applyClientFilters(List<Course> source) {
           ? state.allCourses.where((c) => !enrolled.contains(c.id)).toList()
           : state.allCourses;
       final filtered = _applyClientFilters(withoutEnrolled);
+      final searched = _applyClientSearch(filtered, state.searchQuery.trim().isEmpty
+          ? null
+          : state.searchQuery.trim());
 
       // Apply just the first page of the filtered list so the UI updates.
-      final pageItems = filtered.take(pageSize).toList();
+      final pageItems = searched.take(pageSize).toList();
       state = state.copyWith(
         courses: pageItems,
         page: 0,
-        hasMore: filtered.length > pageSize,
+        hasMore: searched.length > pageSize,
         isInitialLoading: false,
         isLoadingMore: false,
         error: null,

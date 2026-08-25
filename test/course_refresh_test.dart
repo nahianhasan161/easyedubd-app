@@ -1,9 +1,11 @@
+import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/repository/course_repository.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/repository/enrollment_repository.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:test/test.dart';
@@ -35,6 +37,7 @@ class FakeCourseRepository extends CourseRepository {
     String? type,
     bool includeChapters = true,
     bool forceRefresh = false,
+    String? search,
   }) async =>
       courses
           .skip(offset)
@@ -50,6 +53,12 @@ class FakeCourseRepository extends CourseRepository {
             if (type == null || type == 'All') return true;
             if (type == 'Free') return c.is_free;
             return !c.is_free;
+          })
+          .where((c) {
+            final q = search?.trim().toLowerCase();
+            if (q == null || q.isEmpty) return true;
+            return c.title.toLowerCase().contains(q) ||
+                c.description.toLowerCase().contains(q);
           })
           .toList();
 
@@ -92,6 +101,11 @@ void main() {
       overrides: [
         courseRepositoryProvider.overrideWithValue(fakeCourses),
         enrollmentRepositoryProvider.overrideWithValue(fakeEnroll),
+        // Avoid the real connectivity StreamProvider (needs a Flutter
+        // binding / EventChannel). Force "online" so _fetchPage exercises
+        // the server-side code paths.
+        connectivityProvider
+            .overrideWithValue(AsyncData([ConnectivityResult.wifi])),
       ],
     );
   });
@@ -153,5 +167,42 @@ void main() {
 
     final after = await container.read(enrolledCourseIdsProvider.future);
     expect(after, {1, 2, 3});
+  });
+
+  test('search query filters the All Courses list (debounced)', () async {
+    // The "All Courses" notifier (enrolledOnly=false).
+    final notifier = container.read(courseListProvider(false).notifier);
+
+    // Seed a third course that we can target with a unique search term.
+    fakeCourses.courses = [
+      ...fakeCourses.courses,
+      _course(15, isFree: true),
+    ];
+
+    // Trigger the search. setSearchQuery debounces the actual fetch by
+    // 350ms, so wait for that window to elapse.
+    notifier.setSearchQuery('Course 15');
+    await Future.delayed(const Duration(milliseconds: 450));
+    while (notifier.state.isInitialLoading) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+
+    final shown = notifier.state.courses.map((c) => c.id).toList();
+    expect(shown, contains(15),
+        reason: 'search should surface the matching course');
+    expect(shown, isNot(contains(1)),
+        reason: 'non-matching courses should be filtered out');
+
+    // Clearing the query restores the full list.
+    notifier.setSearchQuery('');
+    await Future.delayed(const Duration(milliseconds: 450));
+    while (notifier.state.isInitialLoading) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    expect(
+      notifier.state.courses.map((c) => c.id).toList(),
+      containsAll([1, 2, 15]),
+      reason: 'clearing search should restore all courses',
+    );
   });
 }

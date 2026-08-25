@@ -34,6 +34,9 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
   late String selectedYear;
   late String selectedSubject;
   late String selectedType;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchExpanded = false;
 
   @override
   void initState() {
@@ -77,6 +80,8 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -214,6 +219,78 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
   Widget _buildTopFilters() {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    final notifier = ref.read(courseListProvider(widget.enrolledOnly).notifier);
+
+    Widget searchField() {
+      return TextField(
+        controller: _searchController,
+        focusNode: _searchFocusNode,
+        onChanged: (value) => notifier.setSearchQuery(value),
+        decoration: const InputDecoration(
+          hintText: 'Search courses...',
+          hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+          border: InputBorder.none,
+          isCollapsed: true,
+          contentPadding: EdgeInsets.symmetric(vertical: 10),
+        ),
+        style: const TextStyle(fontSize: 14),
+        textInputAction: TextInputAction.search,
+      );
+    }
+
+    Widget dropdownScroll() {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildFilterDropdown(
+              label: 'Year',
+              allLabel: 'Year',
+              options: const ['All', '1st', '2nd', '3rd', '4th'],
+              selected: selectedYear,
+              onSelected: (value) {
+                setState(() => selectedYear = value);
+                ref
+                    .read(courseListProvider(widget.enrolledOnly).notifier)
+                    .updateFilters(year: value);
+              },
+            ),
+            const SizedBox(width: 8),
+            _buildFilterDropdown(
+              label: 'Subject',
+              allLabel: 'Subject',
+              options: const [
+                'All',
+                'Math',
+                'Physics',
+                'Chemistry',
+                'Biology'
+              ],
+              selected: selectedSubject,
+              onSelected: (value) {
+                setState(() => selectedSubject = value);
+                ref
+                    .read(courseListProvider(widget.enrolledOnly).notifier)
+                    .updateFilters(subject: value);
+              },
+            ),
+            const SizedBox(width: 8),
+            _buildFilterDropdown(
+              label: 'Type',
+              allLabel: 'Type',
+              options: const ['All', 'Free', 'Paid'],
+              selected: selectedType,
+              onSelected: (value) {
+                setState(() => selectedType = value);
+                ref
+                    .read(courseListProvider(widget.enrolledOnly).notifier)
+                    .updateFilters(type: value);
+              },
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -232,58 +309,58 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
       ),
       child: Row(
         children: [
-          Icon(Icons.filter_list, size: 20, color: primary),
+          Icon(
+            _isSearchExpanded ? Icons.search : Icons.filter_list,
+            size: 20,
+            color: primary,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterDropdown(
-                    label: 'Year',
-                    allLabel: 'Year',
-                    options: const ['All', '1st', '2nd', '3rd', '4th'],
-                    selected: selectedYear,
-                    onSelected: (value) {
-                      setState(() => selectedYear = value);
-                      ref
-                          .read(courseListProvider(widget.enrolledOnly).notifier)
-                          .updateFilters(year: value);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _buildFilterDropdown(
-                    label: 'Subject',
-                    allLabel: 'Subject',
-                    options: const [
-                      'All',
-                      'Math',
-                      'Physics',
-                      'Chemistry',
-                      'Biology'
-                    ],
-                    selected: selectedSubject,
-                    onSelected: (value) {
-                      setState(() => selectedSubject = value);
-                      ref
-                          .read(courseListProvider(widget.enrolledOnly).notifier)
-                          .updateFilters(subject: value);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _buildFilterDropdown(
-                    label: 'Type',
-                    allLabel: 'Type',
-                    options: const ['All', 'Free', 'Paid'],
-                    selected: selectedType,
-                    onSelected: (value) {
-                      setState(() => selectedType = value);
-                      ref
-                          .read(courseListProvider(widget.enrolledOnly).notifier)
-                          .updateFilters(type: value);
-                    },
-                  ),
-                ],
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _isSearchExpanded
+                  ? KeyedSubtree(
+                      key: const ValueKey('search-field'),
+                      child: searchField(),
+                    )
+                  : KeyedSubtree(
+                      key: const ValueKey('filter-scroll'),
+                      child: dropdownScroll(),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isSearchExpanded = !_isSearchExpanded;
+              });
+              if (_isSearchExpanded) {
+                // Request focus after the AnimatedSwitcher has mounted the
+                // TextField so the keyboard comes up immediately.
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) _searchFocusNode.requestFocus();
+                });
+              } else {
+                _searchFocusNode.unfocus();
+                if (_searchController.text.isNotEmpty) {
+                  _searchController.clear();
+                  notifier.setSearchQuery('');
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: _isSearchExpanded
+                    ? primary.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                _isSearchExpanded ? Icons.close : Icons.search,
+                size: 20,
+                color: primary,
               ),
             ),
           ),
