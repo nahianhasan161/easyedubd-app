@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
+import 'package:easyedubd_app/core/network/retry.dart';
 import 'package:easyedubd_app/core/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/repository/course_repository.dart';
@@ -88,11 +89,16 @@ class CourseListNotifier extends Notifier<CourseListState> {
   static const Duration _searchDebounceDuration = Duration(milliseconds: 350);
 
   Future<void> loadInitial({bool forceRefresh = false}) async {
+    // If we already have courses on screen, keep showing them while the
+    // refetch happens in the background. This prevents the UI from
+    // flashing to a loading spinner and then to an error when the
+    // network call fails (e.g. DNS not ready after reconnecting).
+    final hasExistingData = state.courses.isNotEmpty;
     state = state.copyWith(
-      isInitialLoading: true,
+      isInitialLoading: !hasExistingData,
       isLoadingMore: false,
       error: null,
-      courses: const [],
+      courses: hasExistingData ? state.courses : const [],
       page: 0,
       hasMore: true,
     );
@@ -134,10 +140,13 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
         final ids = state.enrolledCourseIds;
         final fetched = (ids == null || ids.isEmpty)
             ? <Course>[]
+            // When offline, don't force-refresh — use the cache. The
+            // repository's cache-first logic will return cached data
+            // without attempting a network call.
             : await _repository.getCoursesByIds(
                 ids.toList(),
                 includeChapters: true,
-                forceRefresh: forceRefresh,
+                forceRefresh: forceRefresh && !isOffline,
               );
 
         // Apply client-side search so the "My Courses" tab also respects it.
@@ -242,10 +251,25 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
     // surface a soft error message — don't blow the list away because of
     // a transient network blip on a background re-fetch.
     final hasExistingData = state.courses.isNotEmpty;
+    final isTransient = isTransientNetworkError(e);
     developer.log(
-      '_fetchPage failed (hasExistingData=$hasExistingData): $e',
+      '_fetchPage failed (hasExistingData=$hasExistingData, isTransient=$isTransient): $e',
       error: e,
     );
+
+    // If this was a transient network error and we have no data to show,
+    // retry once after a short delay. This handles the "DNS not ready
+    // after reconnecting" case without bothering the user.
+    if (isTransient && !hasExistingData) {
+      try {
+        await Future.delayed(const Duration(seconds: 1));
+        await _fetchPage(page, forceRefresh: forceRefresh);
+        return;
+      } catch (_) {
+        // Fall through to the error state below.
+      }
+    }
+
     state = state.copyWith(
       isInitialLoading: false,
       isLoadingMore: false,

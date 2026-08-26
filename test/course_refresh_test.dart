@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:io' show SocketException;
+
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
+import 'package:easyedubd_app/core/network/retry.dart';
 import 'package:easyedubd_app/core/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
@@ -133,11 +137,15 @@ void main() {
     // Simulate app resume: invalidate enrollment cache and re-fetch lists.
     container.invalidate(enrolledCourseIdsProvider);
     notifier.setEnrolledCourseIds({1, 2, 15});
-    while (notifier.state.isInitialLoading) {
+    // With the keep-cached-data refetch, isInitialLoading stays false
+    // while the refetch runs in the background. Wait for course 15 to
+    // appear (or a generous timeout) instead.
+    var shown = <int>[];
+    for (var i = 0; i < 50; i++) {
+      shown = notifier.state.courses.map((c) => c.id).toList();
+      if (shown.contains(15)) break;
       await Future.delayed(const Duration(milliseconds: 10));
     }
-
-    final shown = notifier.state.courses.map((c) => c.id).toList();
     expect(shown, contains(15),
         reason: 'newly enrolled course must appear without app restart');
   });
@@ -204,5 +212,79 @@ void main() {
       containsAll([1, 2, 15]),
       reason: 'clearing search should restore all courses',
     );
+  });
+
+  group('retryTransient', () {
+    test('retries on transient network errors and eventually succeeds', () async {
+      var attempts = 0;
+      final result = await retryTransient<int>(
+        () async {
+          attempts++;
+          if (attempts < 3) {
+            throw const SocketException('Failed host lookup');
+          }
+          return 42;
+        },
+        maxAttempts: 5,
+        initialDelay: const Duration(milliseconds: 10),
+      );
+      expect(result, 42);
+      expect(attempts, 3);
+    });
+
+    test('stops retrying on non-transient errors', () async {
+      var attempts = 0;
+      await expectLater(
+        retryTransient<int>(
+          () async {
+            attempts++;
+            throw StateError('not a network error');
+          },
+          maxAttempts: 5,
+          initialDelay: const Duration(milliseconds: 10),
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(attempts, 1);
+    });
+
+    test('gives up after maxAttempts on persistent transient errors', () async {
+      var attempts = 0;
+      await expectLater(
+        retryTransient<int>(
+          () async {
+            attempts++;
+            throw const SocketException('Failed host lookup');
+          },
+          maxAttempts: 3,
+          initialDelay: const Duration(milliseconds: 10),
+        ),
+        throwsA(isA<SocketException>()),
+      );
+      expect(attempts, 3);
+    });
+  });
+
+  test('isTransientNetworkError detects common network failures', () {
+    expect(isTransientNetworkError(const SocketException('x')), isTrue);
+    expect(
+      isTransientNetworkError(
+        Exception('ClientException with SocketException: Failed host lookup'),
+      ),
+      isTrue,
+    );
+    expect(isTransientNetworkError(TimeoutException('slow')), isTrue);
+    expect(isTransientNetworkError(StateError('logic bug')), isFalse);
+  });
+
+  test('sanitizeErrorMessage strips URLs and stack traces', () {
+    final raw =
+        'ClientException with SocketException: Failed host lookup. '
+        'https://abc.supabase.co/rest/v1/course, url=https://abc.supabase.co\n'
+        '#0  someFunction (file:///build/snap.dart:123:45)\n'
+        '#1  anotherFunction';
+    final cleaned = sanitizeErrorMessage(raw);
+    expect(cleaned.contains('http'), isFalse);
+    expect(cleaned.contains('.dart'), isFalse);
   });
 }

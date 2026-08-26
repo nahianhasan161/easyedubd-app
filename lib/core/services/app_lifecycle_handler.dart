@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easyedubd_app/core/cache/realtime_cache_invalidator.dart';
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
+import 'package:easyedubd_app/core/network/retry.dart';
 import 'package:easyedubd_app/core/services/screen_security_service.dart';
 import 'package:easyedubd_app/core/startup/startup_controller.dart';
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
@@ -45,6 +46,11 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
         try {
           Posthog().enable();
         } catch (_) {}
+        // We just came back online. If the course list is currently in an
+        // error state (e.g. from a DNS lookup failure that happened right
+        // when the network came up), auto-retry with backoff so the user
+        // doesn't have to tap Retry manually.
+        _retryIfErrored();
       }
     });
 
@@ -136,6 +142,37 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
     // added courses appear without restarting the app.
     ref.read(courseListProvider(false).notifier).loadInitial();
     ref.read(courseListProvider(true).notifier).loadInitial();
+  }
+
+  /// If the course list providers are currently in an error state, retry
+  /// the fetch with backoff. This handles the case where the user was
+  /// offline, turned on the internet, and the first network call failed
+  /// transiently (e.g. DNS not yet ready).
+  Future<void> _retryIfErrored() async {
+    if (!mounted) return;
+    final allState = ref.read(courseListProvider(false));
+    final myState = ref.read(courseListProvider(true));
+    final hasError =
+        allState.error != null || myState.error != null;
+    if (!hasError) return;
+
+    ref.invalidate(enrolledCourseIdsProvider);
+    try {
+      await retryTransient(
+        () async {
+          await ref
+              .read(courseListProvider(false).notifier)
+              .loadInitial(forceRefresh: true);
+          await ref
+              .read(courseListProvider(true).notifier)
+              .loadInitial(forceRefresh: true);
+        },
+        maxAttempts: 3,
+        initialDelay: const Duration(seconds: 1),
+      );
+    } catch (_) {
+      // The error view will show the error and the user can tap Retry.
+    }
   }
 
   @override

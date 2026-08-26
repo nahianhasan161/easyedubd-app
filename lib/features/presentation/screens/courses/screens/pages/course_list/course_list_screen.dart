@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
+import 'package:easyedubd_app/core/network/retry.dart';
 import 'package:easyedubd_app/core/router/app_router.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
@@ -37,6 +38,7 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchExpanded = false;
+  bool _isRetrying = false;
 
   @override
   void initState() {
@@ -88,6 +90,10 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
   @override
   void didPopNext() {
     super.didPopNext();
+    // When offline, don't trigger a refetch — the cache is still valid and
+    // the user expects to see their previously-loaded courses. A refetch
+    // while offline would force a network call that hangs on DNS timeout.
+    if (ref.read(isOfflineProvider)) return;
     _scheduleRefreshIfNeeded();
   }
 
@@ -738,9 +744,10 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
   }
 
   Widget _buildErrorView(BuildContext context, CourseListState courseList) {
-    final errorText = courseList.error ?? 'Unknown error';
+    final errorText = sanitizeErrorMessage(courseList.error ?? 'Unknown error');
     final isTimeout = errorText.toLowerCase().contains('timeout');
     final isOffline = ref.watch(isOfflineProvider);
+    final isNetworkError = isTransientNetworkError(courseList.error ?? '');
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -759,7 +766,9 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
               Text(
                 isOffline
                     ? 'You\'re offline'
-                    : 'Could not load courses',
+                    : isNetworkError
+                        ? 'Connection problem'
+                        : 'Could not load courses',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -768,9 +777,11 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
                 child: Text(
                   isOffline
                       ? 'Connect to the internet and tap retry to load fresh data.'
-                      : isTimeout
-                          ? 'The request took too long. Please check your connection and try again.'
-                          : 'Something went wrong. Please try again.',
+                      : isNetworkError
+                          ? 'We couldn\'t reach the server. Check your connection and tap retry.'
+                          : isTimeout
+                              ? 'The request took too long. Please check your connection and try again.'
+                              : 'Something went wrong. Please try again.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
@@ -793,22 +804,51 @@ class _CourseListScreenState extends ConsumerState<CourseListScreen> with RouteA
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: () async {
-                  // Invalidate enrolled IDs too so the whole pipeline
-                  // re-fetches fresh data.
-                  ref.invalidate(enrolledCourseIdsProvider);
-                  await ref
-                      .read(courseListProvider(widget.enrolledOnly).notifier)
-                      .loadInitial();
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                onPressed: _isRetrying ? null : () => _handleRetry(),
+                icon: _isRetrying
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.refresh),
+                label: Text(_isRetrying ? 'Retrying…' : 'Retry'),
               ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  /// Retry the failed fetch with exponential backoff. This handles the
+  /// common case where the device just came back online but the OS hasn't
+  /// finished setting up the network stack — the first DNS lookup fails
+  /// with `Failed host lookup`, but the second or third one succeeds.
+  Future<void> _handleRetry() async {
+    if (_isRetrying) return;
+    setState(() => _isRetrying = true);
+    try {
+      // Invalidate enrolled IDs so the whole pipeline re-fetches fresh data.
+      ref.invalidate(enrolledCourseIdsProvider);
+      final notifier = ref.read(
+        courseListProvider(widget.enrolledOnly).notifier,
+      );
+      await retryTransient(
+        () => notifier.loadInitial(forceRefresh: true),
+        maxAttempts: 3,
+        initialDelay: const Duration(seconds: 1),
+      );
+    } catch (_) {
+      // loadInitial already sets state.error; the UI will show it.
+    } finally {
+      if (mounted) {
+        setState(() => _isRetrying = false);
+      }
+    }
   }
 
   Widget _buildOfflineMessage(
