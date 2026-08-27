@@ -87,6 +87,18 @@ class RealtimeCacheInvalidator {
     unawaited(_checkSafely());
   }
 
+  /// Wipe the local course + enrollment caches and emit on the
+  /// `invalidations` stream. Use this after a successful admin write so
+  /// the admin's own device picks up the change immediately, without
+  /// waiting for the next lifecycle event.
+  static Future<void> invalidateAllLocal() async {
+    await CacheService.invalidateAllCourses();
+    await CacheService.invalidateAllEnrollments();
+    if (!_controller.isClosed) {
+      _controller.add(null);
+    }
+  }
+
   /// Stops the periodic timer. Call on logout if you want to halt the poll.
   static Future<void> stop() async {
     _timer?.cancel();

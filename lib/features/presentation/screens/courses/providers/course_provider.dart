@@ -1,4 +1,5 @@
 import 'package:easyedubd_app/core/cache/cache_service.dart';
+import 'package:easyedubd_app/core/cache/realtime_cache_invalidator.dart';
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/network/retry.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
@@ -85,15 +86,13 @@ Future<Set<int>> _loadEnrolledCourseIds(Ref ref) async {
 }
 
 Future<void> refreshStudentCourseCaches(WidgetRef ref) async {
-  ref.invalidate(courseListProvider(false));
-  ref.invalidate(courseListProvider(true));
-  ref.invalidate(enrolledCourseIdsProvider);
-
-  final enrolledIds = await ref.read(enrolledCourseIdsProvider.future);
-
-  final allNotifier = ref.read(courseListProvider(false).notifier);
-  final myNotifier = ref.read(courseListProvider(true).notifier);
-
-  allNotifier.setEnrolledCourseIds(enrolledIds);
-  myNotifier.setEnrolledCourseIds(enrolledIds);
+  // Don't invalidate the course list providers directly here. Doing so
+  // can throw "tried to rebuild NotifierProvider multiple times in the
+  // same frame" when a widget that watches them is currently building
+  // (e.g. the dashboard tab is being re-rendered after the admin screen
+  // is popped). Instead, wipe the local cache and emit on the
+  // `RealtimeCacheInvalidator.invalidations` stream. The
+  // `AppLifecycleHandler._onCacheInvalidated` listener will then handle
+  // the provider invalidation on the next frame, avoiding the conflict.
+  await RealtimeCacheInvalidator.invalidateAllLocal();
 }
