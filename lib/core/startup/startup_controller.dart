@@ -30,46 +30,51 @@ class StartupController extends AsyncNotifier<AppStartupState> {
   @override
   Future<AppStartupState> build() async {
     supabase = ref.read(supabaseProvider);
-    return initialize();
+    // Do the startup check directly here, returning the resolved state.
+    // Don't manually set `state` — Riverpod uses the returned value as
+    // the state. Setting `state` manually from inside `build()` can cause
+    // race conditions where the state flickers back to loading.
+    try {
+      return await _performStartupCheck().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw TimeoutException('Startup timed out after 15 seconds'),
+      );
+    } catch (_) {
+      return AppStartupState.unauthenticated;
+    }
   }
 
   Future<AppStartupState> initialize() async {
-    state = const AsyncLoading();
+    // Public entry point used by the splash screen and lifecycle handler.
+    // Delegates to `refresh()` which properly sets `state = AsyncLoading`
+    // before re-running the check.
+    return refresh();
+  }
 
+  Future<AppStartupState> recheckOnResume() async {
+    // Same as initialize() but only updates state if the result changed.
+    final previous = state.value;
+    final result = await refresh();
+    if (previous != null && previous != result) {
+      // state was already updated by refresh(); nothing more to do.
+    }
+    return result;
+  }
+
+  Future<AppStartupState> refresh() async {
+    state = const AsyncLoading();
     try {
       final result = await _performStartupCheck().timeout(
         const Duration(seconds: 15),
         onTimeout: () => throw TimeoutException('Startup timed out after 15 seconds'),
       );
-
       state = AsyncData(result);
       return result;
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      return AppStartupState.unauthenticated;
+    } catch (_) {
+      const fallback = AppStartupState.unauthenticated;
+      state = const AsyncData(fallback);
+      return fallback;
     }
-  }
-
-  Future<AppStartupState> recheckOnResume() async {
-    try {
-      final result = await _performStartupCheck().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => throw TimeoutException('Resume check timed out after 15 seconds'),
-      );
-
-      if (state.value != result) {
-        state = AsyncData(result);
-      }
-
-      return result;
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      return AppStartupState.unauthenticated;
-    }
-  }
-
-  Future<void> refresh() async {
-    await initialize();
   }
 
   void setState(AppStartupState value) {

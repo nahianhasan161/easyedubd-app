@@ -27,13 +27,18 @@ class UsersQuery {
   int get hashCode => Object.hash(page, search, role);
 }
 
-/// Loads one filtered/searched page of registered users.
+/// Loads one filtered/searched page of registered users. Returns an
+/// empty page on error so the provider never gets stuck in error state.
 final usersProvider =
-    FutureProvider.family<PaginatedUsers, UsersQuery>((ref, query) {
-  final repository = ref.read(userRepositoryProvider);
-  return repository.getUsers(
-    page: query.page,
-    search: query.search,
-    role: query.role,
-  );
+    FutureProvider.family<PaginatedUsers, UsersQuery>((ref, query) async {
+  try {
+    final repository = ref.read(userRepositoryProvider);
+    return await repository.getUsers(
+      page: query.page,
+      search: query.search,
+      role: query.role,
+    );
+  } catch (_) {
+    return PaginatedUsers(items: const [], total: 0, page: 1, pageSize: 15);
+  }
 });

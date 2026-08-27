@@ -19,10 +19,15 @@ class DevicesQuery {
   int get hashCode => Object.hash(userId, page);
 }
 
-/// Loads one page of a user's registered devices.
+/// Loads one page of a user's registered devices. Returns an empty
+/// page on error so the provider never gets stuck in error state.
 final userDevicesProvider = FutureProvider.family<PaginatedDevices,
-    DevicesQuery>((ref, query) {
-  return ref
-      .read(userRepositoryProvider)
-      .getUserDevices(query.userId, page: query.page);
+    DevicesQuery>((ref, query) async {
+  try {
+    return await ref
+        .read(userRepositoryProvider)
+        .getUserDevices(query.userId, page: query.page);
+  } catch (_) {
+    return PaginatedDevices(items: const [], total: 0, page: 1, pageSize: 15);
+  }
 });

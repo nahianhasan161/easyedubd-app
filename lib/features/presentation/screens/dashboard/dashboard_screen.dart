@@ -2,6 +2,7 @@ import 'package:easyedubd_app/core/providers/supabase_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/profile.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/course_list_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/dashboard/admin_drawer.dart';
+import 'package:easyedubd_app/features/presentation/screens/dashboard/dashboard_tab_screen.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_avatar.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:flutter/material.dart';
@@ -18,9 +19,21 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  // Index 0: Dashboard (sliders overview)
+  // Index 1: All Courses (full list)
+  // Index 2: My Courses (enrolled list)
   int _currentIndex = 0;
 
   late final List<Widget> _pages = [
+    DashboardTabScreen(
+      key: const ValueKey('dashboard_tab'),
+      onSwitchTab: (index) {
+        if (!mounted) return;
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+    ),
     const CourseListScreen(key: ValueKey('all_courses'), showAppBar: false),
     const CourseListScreen(
       key: ValueKey('my_courses'),
@@ -95,8 +108,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         titleSpacing: 0,
         title: LayoutBuilder(
           builder: (context, constraints) {
-            final titleText =
-                _currentIndex == 0 ? 'All Courses' : 'My Courses';
+            final titleText = switch (_currentIndex) {
+              0 => 'Dashboard',
+              1 => 'All Courses',
+              _ => 'My Courses',
+            };
             return Stack(
               alignment: Alignment.center,
               children: [
@@ -168,6 +184,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           });
         },
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
           NavigationDestination(
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),

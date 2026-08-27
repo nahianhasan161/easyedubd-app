@@ -18,6 +18,19 @@ final enrollmentRepositoryProvider = Provider<EnrollmentRepository>((ref) {
 /// prevents the "My Courses" tab from showing a hard error when the
 /// user is transitioning from offline to online.
 final enrolledCourseIdsProvider = FutureProvider<Set<int>>((ref) async {
+  // Outer safety net: the entire body is wrapped in try/catch so this
+  // provider can NEVER enter an error state, regardless of what happens
+  // below (unexpected throws from the cache layer, the repository, or
+  // Riverpod's own internals). If anything goes wrong, we fall back to
+  // an empty set so the UI stays alive.
+  try {
+    return await _loadEnrolledCourseIds(ref);
+  } catch (_) {
+    return <int>{};
+  }
+});
+
+Future<Set<int>> _loadEnrolledCourseIds(Ref ref) async {
   final isOffline = ref.watch(isOfflineProvider);
 
   // Safely get the current user. In test environments where Supabase
@@ -69,7 +82,7 @@ final enrolledCourseIdsProvider = FutureProvider<Set<int>>((ref) async {
     }
     return <int>{};
   }
-});
+}
 
 Future<void> refreshStudentCourseCaches(WidgetRef ref) async {
   ref.invalidate(courseListProvider(false));

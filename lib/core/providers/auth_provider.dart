@@ -27,9 +27,11 @@ final sessionProvider = Provider<Session?>((ref) {
 /// (sign-in, sign-out, or switching accounts). Without this, providers like
 /// the profile cache and enrolled-course ids keep the previous user's data.
 ///
-/// It reacts to every auth event (not just when the stream value changes),
-/// comparing the actual signed-in user id before and after, so it also catches
-/// account switches that don't emit a new signedOut/signedIn event.
+/// It only invalidates `startupProvider` on **identity transitions**
+/// (null → user, user → null, or user A → user B), NOT on every
+/// `onAuthStateChange` emit. The Supabase auth stream emits on every
+/// token refresh, and re-running the full startup check on every refresh
+/// would cause an infinite loading loop on the splash screen.
 final authResetProvider = Provider<void>((ref) {
   String? userIdOf(AsyncValue<AuthState>? state) =>
       state?.value?.session?.user.id;
@@ -38,14 +40,17 @@ final authResetProvider = Provider<void>((ref) {
     final prevUser = userIdOf(previous);
     final nextUser = userIdOf(next);
 
-    // Invalidate when the user identity changes. Also invalidate when the
-    // stream emits but we can't tell (e.g. account switch without a clear
-    // event) by comparing the live current user id as a fallback.
-    final liveUser = Supabase.instance.client.auth.currentUser?.id;
-    if (prevUser != nextUser || (prevUser != liveUser && nextUser != liveUser)) {
-      ref.invalidate(currentProfileProvider);
-      ref.invalidate(enrolledCourseIdsProvider);
-      ref.invalidate(startupProvider);
-    }
+    // Only act on identity transitions, not on token refreshes where the
+    // user id stays the same. A token refresh fires `onAuthStateChange`
+    // with the same user id before and after — we must NOT invalidate the
+    // startup provider in that case, or the splash screen will loop.
+    if (prevUser == nextUser) return;
+
+    ref.invalidate(currentProfileProvider);
+    ref.invalidate(enrolledCourseIdsProvider);
+    // Don't invalidate startupProvider here. The router redirect logic
+    // reads startupState and will re-run the startup check if needed.
+    // Invalidating it from this listener creates a loop because the
+    // startup check itself can trigger auth state changes.
   });
 });

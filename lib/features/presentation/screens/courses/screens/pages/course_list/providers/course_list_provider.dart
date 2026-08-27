@@ -89,21 +89,41 @@ class CourseListNotifier extends Notifier<CourseListState> {
   static const Duration _searchDebounceDuration = Duration(milliseconds: 350);
 
   Future<void> loadInitial({bool forceRefresh = false}) async {
-    // If we already have courses on screen, keep showing them while the
-    // refetch happens in the background. This prevents the UI from
-    // flashing to a loading spinner and then to an error when the
-    // network call fails (e.g. DNS not ready after reconnecting).
-    final hasExistingData = state.courses.isNotEmpty;
-    state = state.copyWith(
-      isInitialLoading: !hasExistingData,
-      isLoadingMore: false,
-      error: null,
-      courses: hasExistingData ? state.courses : const [],
-      page: 0,
-      hasMore: true,
-    );
+    try {
+      // If we already have courses on screen, keep showing them while the
+      // refetch happens in the background. This prevents the UI from
+      // flashing to a loading spinner and then to an error when the
+      // network call fails (e.g. DNS not ready after reconnecting).
+      final hasExistingData = state.courses.isNotEmpty;
+      state = state.copyWith(
+        isInitialLoading: !hasExistingData,
+        isLoadingMore: false,
+        error: null,
+        courses: hasExistingData ? state.courses : const [],
+        page: 0,
+        hasMore: true,
+      );
 
-    await _fetchPage(0, forceRefresh: forceRefresh);
+      await _fetchPage(0, forceRefresh: forceRefresh);
+    } catch (_) {
+      // Outer safety net: if `_fetchPage` somehow throws past its own
+      // try/catch (e.g. an unexpected error in a helper), keep the
+      // existing courses visible and surface a soft error rather than
+      // letting the notifier enter a bad state.
+      if (state.courses.isEmpty) {
+        state = state.copyWith(
+          isInitialLoading: false,
+          isLoadingMore: false,
+          error: 'Could not load courses',
+        );
+      } else {
+        state = state.copyWith(
+          isInitialLoading: false,
+          isLoadingMore: false,
+          error: null,
+        );
+      }
+    }
   }
 
   Future<void> loadMore() async {
@@ -115,7 +135,20 @@ class CourseListNotifier extends Notifier<CourseListState> {
     }
 
     state = state.copyWith(isLoadingMore: true, error: null);
-    await _fetchPage(state.page + 1);
+    try {
+      await _fetchPage(state.page + 1);
+    } catch (_) {
+      // Same outer safety net as loadInitial: swallow unexpected throws
+      // and surface a soft error only if there's nothing else to show.
+      if (state.courses.isEmpty) {
+        state = state.copyWith(
+          isLoadingMore: false,
+          error: 'Could not load more courses',
+        );
+      } else {
+        state = state.copyWith(isLoadingMore: false, error: null);
+      }
+    }
   }
 
   /// Update the search query. The actual network / cache fetch is debounced

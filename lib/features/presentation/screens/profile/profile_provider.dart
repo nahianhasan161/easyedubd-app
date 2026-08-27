@@ -13,12 +13,23 @@ final currentUserIdProvider = Provider<String?>((ref) {
 });
 
 /// Loads the signed-in user's profile.
+///
+/// This provider is designed to NEVER enter an error state. If the
+/// profile fetch fails (network blip, RLS issue, stale session), it
+/// returns `null`. Returning `null` is the right "I don't know" value —
+/// `isAdminProvider` and `profileCompleteProvider` already handle
+/// `null` gracefully, and the auth state listener will re-trigger a
+/// fetch when the session changes.
 final currentProfileProvider = FutureProvider<Profile?>((ref) async {
   final id = ref.watch(currentUserIdProvider);
   if (id == null) return null;
 
-  final repository = ref.read(profileRepositoryProvider);
-  return repository.getProfile(id);
+  try {
+    final repository = ref.read(profileRepositoryProvider);
+    return await repository.getProfile(id);
+  } catch (_) {
+    return null;
+  }
 });
 
 /// True when the signed-in user's profile role is 'admin'.

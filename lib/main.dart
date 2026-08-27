@@ -6,6 +6,7 @@ import 'package:easyedubd_app/core/providers/auth_provider.dart';
 import 'package:easyedubd_app/core/router/app_router.dart';
 import 'package:easyedubd_app/core/services/app_lifecycle_handler.dart';
 import 'package:easyedubd_app/core/services/screen_security_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,7 +86,42 @@ Future<void> main() async {
   );
   RealtimeCacheInvalidator.start();
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(ProviderScope(
+    observers: [_RiverpodErrorObserver()],
+    child: const MyApp(),
+  ));
+}
+
+/// Logs Riverpod provider errors and auto-recovers errored providers.
+///
+/// Without this observer, a provider that throws during `build()` (e.g. a
+/// `FutureProvider` whose async fetch fails once and never gets invalidated)
+/// stays in error state. The next `ref.watch` on it re-throws the cached
+/// error, which crashes the widget tree with
+/// "ProviderException: tried to use a provider that is in error state".
+///
+/// We log the error so it's visible in `flutter logs`, and we invalidate
+/// the provider so the next access rebuilds it from scratch.
+base class _RiverpodErrorObserver extends ProviderObserver {
+  @override
+  void providerDidFail(
+    ProviderObserverContext context,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    final name = context.provider.name ?? context.provider.runtimeType;
+    debugPrint('Riverpod provider "$name" failed: $error');
+    if (kDebugMode) {
+      debugPrintStack(stackTrace: stackTrace);
+    }
+    // Invalidate so the next access rebuilds instead of re-throwing the
+    // cached error.
+    try {
+      context.container.invalidate(context.provider);
+    } catch (_) {
+      // Some providers can't be invalidated (e.g. scoped ones). Swallow.
+    }
+  }
 }
 
 final supabase = Supabase.instance.client;
