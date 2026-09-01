@@ -5,10 +5,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'cache_service.dart';
 
-/// Periodically polls Supabase for a `cache_version` row and invalidates the
-/// local course / enrollment caches whenever the version on the server
-/// increases. This replaces a previous Supabase-Realtime based listener that
-/// required the Realtime add-on to be enabled on the database.
+/// Lifecycle-driven cache invalidation for Supabase-backed data.
+///
+/// Polls Supabase for a `cache_version` row and invalidates the local
+/// course / enrollment caches whenever the version on the server
+/// increases. The check is **not** timer-driven — it runs only when the
+/// user is actively engaged with the app (resume, tab change, route
+/// return, connectivity change) or after an admin write. For a
+/// rarely-changing dataset this is the right cadence: the cache stays
+/// valid until the user does something that suggests they expect fresh
+/// data. Idle users make zero background network calls.
 ///
 /// The companion SQL is:
 ///
@@ -27,7 +33,7 @@ import 'cache_service.dart';
 ///     update public.cache_version
 ///        set version = version + 1, updated_at = now()
 ///      where id = 1;
-/////     return null;
+///     return null;
 ///   end;
 ///   $$ language plpgsql security definer;
 ///
@@ -46,17 +52,20 @@ import 'cache_service.dart';
 ///     after insert or update or delete on public.lesson
 ///     for each statement execute function public.bump_cache_version();
 ///
+///   drop trigger if exists trg_bump_enrollment on public.enrollments;
+///   create trigger trg_bump_enrollment
+///     after insert or update or delete on public.enrollments
+///     for each statement execute function public.bump_cache_version();
+///
 ///   alter table public.cache_version enable row level security;
 ///   create policy "cache_version_read" on public.cache_version
 ///     for select using (true);
 class RealtimeCacheInvalidator {
-  static const Duration _pollInterval = Duration(minutes: 5);
   static const String _table = 'cache_version';
 
   static final StreamController<void> _controller =
       StreamController<void>.broadcast();
 
-  static Timer? _timer;
   static bool _started = false;
   static bool _checking = false;
   static int _lastSeenVersion = 0;
@@ -65,8 +74,15 @@ class RealtimeCacheInvalidator {
   /// Use this to trigger Riverpod provider re-fetches.
   static Stream<void> get invalidations => _controller.stream;
 
-  /// Start polling. Call this once after the user is authenticated.
-  /// Safe to call multiple times; subsequent calls are no-ops.
+  /// Start the invalidation service. Call this once after the user is
+  /// authenticated (typically in `main()`). Safe to call multiple times;
+  /// subsequent calls are no-ops.
+  ///
+  /// No timer is started. The version check runs only on lifecycle
+  /// events (`checkNow()`) and after admin writes
+  /// (`invalidateAllLocal()`). This is deliberate: the cache is the
+  /// source of truth, and a rarely-changing dataset doesn't need
+  /// background polling.
   static void start() {
     if (_started) return;
     _started = true;
@@ -74,14 +90,20 @@ class RealtimeCacheInvalidator {
     final saved = CacheService.getLastSeenCacheVersion();
     _lastSeenVersion = saved ?? 0;
 
-    _timer = Timer.periodic(_pollInterval, (_) => _checkSafely());
-    // Run an immediate check so the first resume / first auth doesn't have to
-    // wait a full poll interval.
+    // One immediate check on startup so the first session doesn't have
+    // to wait for a lifecycle event to discover server-side changes
+    // that happened while the app was killed.
     unawaited(_checkSafely());
   }
 
-  /// Run a single check right now (e.g. on app resume). No-op if a check is
-  /// already in flight or the service hasn't been started yet.
+  /// Run a single check right now. Call this from lifecycle hooks:
+  /// - `AppLifecycleState.resumed` (app comes to foreground)
+  /// - Tab change in the dashboard
+  /// - `RouteAware.didPopNext` (coming back from a detail page)
+  /// - Connectivity change (offline → online)
+  ///
+  /// No-op if a check is already in flight or the service hasn't been
+  /// started yet.
   static void checkNow() {
     if (!_started) return;
     unawaited(_checkSafely());
@@ -99,10 +121,9 @@ class RealtimeCacheInvalidator {
     }
   }
 
-  /// Stops the periodic timer. Call on logout if you want to halt the poll.
+  /// Stop the service. Call on logout. Currently a no-op since there's
+  /// no timer, but kept for API stability and future-proofing.
   static Future<void> stop() async {
-    _timer?.cancel();
-    _timer = null;
     _started = false;
   }
 
@@ -120,7 +141,7 @@ class RealtimeCacheInvalidator {
       await _checkOnce();
     } catch (_) {
       // Network or permission errors are expected (offline / cold start).
-      // We just skip this tick and try again on the next interval / resume.
+      // The next lifecycle event will try again.
     } finally {
       _checking = false;
     }

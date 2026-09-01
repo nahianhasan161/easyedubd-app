@@ -149,20 +149,26 @@ class CourseRepository {
     }
   }
 
-  Future<Course?> getCourseById(int id) async {
+  Future<Course?> getCourseById(
+    int id, {
+    bool forceRefresh = false,
+  }) async {
     final cacheKey = CacheService.courseKey(courseId: id);
 
-    // Try cache first - this is what enables offline course detail viewing.
-    final cached = CacheService.getCourse(cacheKey);
-    if (cached != null) {
-      try {
-        developer.log('Cache hit for course $id');
-        return Course.fromJson(
-          CacheService.normalize(cached) as Map<String, dynamic>,
-        );
-      } catch (e) {
-        developer.log('Corrupt cache entry for course $id, dropping: $e');
-        await CacheService.deleteCourse(cacheKey);
+    // Try cache first (unless forceRefresh is set). This is what enables
+    // offline course detail viewing.
+    if (!forceRefresh) {
+      final cached = CacheService.getCourse(cacheKey);
+      if (cached != null) {
+        try {
+          developer.log('Cache hit for course $id');
+          return Course.fromJson(
+            CacheService.normalize(cached) as Map<String, dynamic>,
+          );
+        } catch (e) {
+          developer.log('Corrupt cache entry for course $id, dropping: $e');
+          await CacheService.deleteCourse(cacheKey);
+        }
       }
     }
 

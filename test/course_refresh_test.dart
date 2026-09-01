@@ -67,7 +67,10 @@ class FakeCourseRepository extends CourseRepository {
           .toList();
 
   @override
-  Future<Course?> getCourseById(int id) async =>
+  Future<Course?> getCourseById(
+    int id, {
+    bool forceRefresh = false,
+  }) async =>
       courses.where((c) => c.id == id).firstOrNull;
 
   @override

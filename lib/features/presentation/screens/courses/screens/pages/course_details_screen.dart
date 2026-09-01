@@ -64,7 +64,7 @@ class CourseDetailsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: () => ref.invalidate(courseByIdProvider(courseId)),
+                  onPressed: () => refreshCourseById(ref, courseId),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Retry'),
                 ),
@@ -106,10 +106,7 @@ class CourseDetailsScreen extends ConsumerWidget {
             ),
           ),
           body: RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(courseByIdProvider(courseId));
-              await ref.read(courseByIdProvider(courseId).future);
-            },
+            onRefresh: () => refreshCourseById(ref, courseId),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -320,8 +317,7 @@ class CourseDetailsScreen extends ConsumerWidget {
 
                                       Future.delayed(const Duration(milliseconds: 300), () async {
                                         if (context.mounted) {
-                                          ref.invalidate(courseByIdProvider(courseId));
-                                          await ref.read(courseByIdProvider(courseId).future);
+                                          await refreshCourseById(ref, courseId);
                                         }
                                       });
                                     },
