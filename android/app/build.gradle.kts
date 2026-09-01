@@ -36,10 +36,22 @@ android {
 
     defaultConfig {
         applicationId = "com.easyeducationbd.app"
+        // PostHog requires Android 6.0 (API 23) or higher. Older devices
+        // will see "device not compatible" in the Play Store and the
+        // PostHog SDK will refuse to initialize at runtime.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Include 32-bit and 64-bit ABIs so the app installs on all
+        // Android devices. Without this, the Play Store shows "device
+        // not compatible" for any device whose CPU architecture isn't
+        // included in the AAB. This is the #1 cause of "not compatible"
+        // reports in markets like Bangladesh where 32-bit devices are
+        // still common.
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
     }
 
     buildTypes {
