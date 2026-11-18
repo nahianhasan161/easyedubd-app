@@ -1,11 +1,12 @@
-name: Google Play Internal (non-main branches)
+name: Google Play Alpha (dev branch)
 
-# Every push to any branch EXCEPT main builds an AAB and uploads it to the
-# Google Play "internal" testing track automatically.
+# Only pushes to `dev` build an AAB and upload it to the Google Play
+# "alpha" (closed testing) track. `local-dev` and other branches never
+# reach the Play Store. `main` is handled by main.yml (production).
 on:
   push:
-    branches-ignore:
-      - main
+    branches:
+      - dev
   workflow_dispatch:
 
 concurrency:
@@ -14,7 +15,7 @@ concurrency:
 
 jobs:
   upload-internal:
-    if: github.ref != 'refs/heads/main'
+    if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,11 +51,11 @@ jobs:
       - name: Build App Bundle
         run: flutter build appbundle --release --build-number=$BUILD_NUMBER
 
-      - name: Upload to Google Play Internal Testing
+      - name: Upload to Google Play Alpha (closed testing)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.easyeducationbd.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          tracks: internal
+          tracks: alpha
           status: completed

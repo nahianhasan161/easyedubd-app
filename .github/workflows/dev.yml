@@ -1,8 +1,9 @@
-name: Dev Build
+name: Dev Build (artifacts only, no Play upload)
 
 on:
   push:
     branches:
+      - local-dev
       - dev
   workflow_dispatch:
 
