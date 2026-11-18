@@ -134,6 +134,20 @@ class CacheService {
     await _meta.put(_kLastSeenCacheVersion, version);
   }
 
+  // ============ Last verified device status ============
+  // Remembered per user so that a slow/failed `verify_device` call doesn't
+  // let a pending or revoked device in. Values: 'approved' | 'pending' |
+  // 'revoked'.
+  static String? getLastDeviceStatus(String userId) {
+    if (!_ready) return null;
+    return _meta.get('device_status_$userId') as String?;
+  }
+
+  static Future<void> setLastDeviceStatus(String userId, String status) async {
+    if (!_ready) return;
+    await _meta.put('device_status_$userId', status);
+  }
+
   static Future<void> clearAll() async {
     if (!_ready) return;
     await _courses.clear();

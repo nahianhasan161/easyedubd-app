@@ -44,9 +44,6 @@ class DeviceService {
     String manufacturer = '';
     String platform = Platform.operatingSystem;
     String osVersion = '';
-    String deviceName = manufacturer.isNotEmpty
-        ? '$manufacturer $model'
-        : model;
 
     if (Platform.isAndroid) {
       final info = await _deviceInfo.androidInfo.timeout(
@@ -111,6 +108,11 @@ class DeviceService {
 
       raw = [info.systemGUID ?? '', info.modelName, info.osRelease].join('|');
     }
+
+    // Computed after the platform branches above have filled in
+    // manufacturer/model (it used to be computed before, so it was always '').
+    final deviceName =
+        manufacturer.isNotEmpty ? '$manufacturer $model' : model;
 
     final fingerprint = sha256.convert(utf8.encode(raw)).toString();
 

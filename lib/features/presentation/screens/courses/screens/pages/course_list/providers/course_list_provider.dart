@@ -8,6 +8,10 @@ import 'package:easyedubd_app/features/presentation/screens/courses/screens/page
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:developer' as developer;
 
+/// Marks "argument not passed" in [CourseListState.copyWith], so that
+/// `copyWith(error: null)` really clears the error.
+const Object _unset = Object();
+
 class CourseListState {
   final List<Course> courses;
   final List<Course> allCourses; // Unfiltered list (for client-side filter)
@@ -43,7 +47,7 @@ class CourseListState {
     bool? isInitialLoading,
     bool? isLoadingMore,
     bool? hasMore,
-    String? error,
+    Object? error = _unset,
     int? page,
     String? year,
     String? subject,
@@ -57,7 +61,7 @@ class CourseListState {
       isInitialLoading: isInitialLoading ?? this.isInitialLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
-      error: error ?? this.error,
+      error: identical(error, _unset) ? this.error : error as String?,
       page: page ?? this.page,
       year: year ?? this.year,
       subject: subject ?? this.subject,
@@ -75,6 +79,13 @@ class CourseListNotifier extends Notifier<CourseListState> {
 
   late final CourseRepository _repository;
   Timer? _searchDebounce;
+
+  /// Bumped every time a new initial load starts (or the filter changes
+  /// in-memory). A fetch that finishes after a newer one started is
+  /// stale and must not overwrite the state — otherwise overlapping
+  /// reloads (resume + cache invalidation + pull-to-refresh) can show
+  /// old data on top of fresh data.
+  int _generation = 0;
 
   @override
   CourseListState build() {
@@ -94,6 +105,7 @@ class CourseListNotifier extends Notifier<CourseListState> {
       // refetch happens in the background. This prevents the UI from
       // flashing to a loading spinner and then to an error when the
       // network call fails (e.g. DNS not ready after reconnecting).
+      final generation = ++_generation;
       final hasExistingData = state.courses.isNotEmpty;
       state = state.copyWith(
         isInitialLoading: !hasExistingData,
@@ -104,7 +116,7 @@ class CourseListNotifier extends Notifier<CourseListState> {
         hasMore: true,
       );
 
-      await _fetchPage(0, forceRefresh: forceRefresh);
+      await _fetchPage(0, generation, forceRefresh: forceRefresh);
     } catch (_) {
       // Outer safety net: if `_fetchPage` somehow throws past its own
       // try/catch (e.g. an unexpected error in a helper), keep the
@@ -136,7 +148,7 @@ class CourseListNotifier extends Notifier<CourseListState> {
 
     state = state.copyWith(isLoadingMore: true, error: null);
     try {
-      await _fetchPage(state.page + 1);
+      await _fetchPage(state.page + 1, _generation);
     } catch (_) {
       // Same outer safety net as loadInitial: swallow unexpected throws
       // and surface a soft error only if there's nothing else to show.
@@ -163,7 +175,11 @@ class CourseListNotifier extends Notifier<CourseListState> {
     });
   }
 
-Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
+Future<void> _fetchPage(
+    int page,
+    int generation, {
+    bool forceRefresh = false,
+  }) async {
     final isOffline = ref.read(isOfflineProvider);
     final search = state.searchQuery.trim().isEmpty
         ? null
@@ -181,6 +197,8 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
                 includeChapters: true,
                 forceRefresh: forceRefresh && !isOffline,
               );
+
+        if (generation != _generation) return;
 
         // Apply client-side search so the "My Courses" tab also respects it.
         final searched = _applyClientSearch(fetched, search);
@@ -201,6 +219,7 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
       final all = await _repository.getAllCoursesForOffline(
         forceRefresh: forceRefresh,
       );
+      if (generation != _generation) return;
 
       // Apply enrolled filter first.
       final enrolled = state.enrolledCourseIds;
@@ -245,6 +264,7 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
         forceRefresh: forceRefresh,
         search: search,
       );
+      if (generation != _generation) return;
 
       // Hide enrolled courses from the "All Courses" tab so they only
       // appear under "My Courses".
@@ -280,6 +300,7 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
       }
     }
   } catch (e) {
+    if (generation != _generation) return;
     // If we already have courses on screen, keep showing them and just
     // surface a soft error message — don't blow the list away because of
     // a transient network blip on a background re-fetch.
@@ -296,11 +317,12 @@ Future<void> _fetchPage(int page, {bool forceRefresh = false}) async {
     if (isTransient && !hasExistingData) {
       try {
         await Future.delayed(const Duration(seconds: 1));
-        await _fetchPage(page, forceRefresh: forceRefresh);
+        await _fetchPage(page, generation, forceRefresh: forceRefresh);
         return;
       } catch (_) {
         // Fall through to the error state below.
       }
+      if (generation != _generation) return;
     }
 
     state = state.copyWith(
@@ -360,6 +382,7 @@ List<Course> _applyClientSearch(List<Course> source, String? search) {
     // OFFLINE: the server can't apply the filter, so re-filter the cached
     // full list in memory. No network call needed.
     if (isOffline && state.allCourses.isNotEmpty) {
+      _generation++; // drop any in-flight fetch for the old filter
       final enrolled = state.enrolledCourseIds;
       final withoutEnrolled = enrolled != null && enrolled.isNotEmpty
           ? state.allCourses.where((c) => !enrolled.contains(c.id)).toList()

@@ -16,31 +16,35 @@ import 'package:posthog_flutter/posthog_flutter.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env").timeout(
-    const Duration(seconds: 5),
-    onTimeout: () => Future<void>.value(),
-  );
-
-  final posthogApiKey = dotenv.env['POSTHOG_API_KEY'];
-  final posthogFuture = Posthog()
-      .setup(
-        PostHogConfig(posthogApiKey!)
-          ..host = 'https://us.i.posthog.com'
-          ..debug = true
-          ..captureApplicationLifecycleEvents = true
-          ..sessionReplay = true
-          ..sessionReplayConfig.maskAllTexts = false
-          ..sessionReplayConfig.maskAllImages = false
-          ..sessionReplayConfig.throttleDelay = const Duration(
-            milliseconds: 5000,
-          )
-          ..errorTrackingConfig.captureFlutterErrors = true
-          ..errorTrackingConfig.capturePlatformDispatcherErrors = true,
-      )
+  await dotenv
+      .load(fileName: ".env")
       .timeout(
         const Duration(seconds: 5),
         onTimeout: () => Future<void>.value(),
       );
+
+  final posthogApiKey = dotenv.env['POSTHOG_API_KEY'] ?? '';
+  final posthogFuture = posthogApiKey.isEmpty
+      ? Future<void>.value()
+      : Posthog()
+            .setup(
+              PostHogConfig(posthogApiKey)
+                ..host = 'https://us.i.posthog.com'
+                ..debug = kDebugMode
+                ..captureApplicationLifecycleEvents = true
+                ..sessionReplay = true
+                ..sessionReplayConfig.maskAllTexts = true
+                ..sessionReplayConfig.maskAllImages = false
+                ..sessionReplayConfig.throttleDelay = const Duration(
+                  milliseconds: 5000,
+                )
+                ..errorTrackingConfig.captureFlutterErrors = true
+                ..errorTrackingConfig.capturePlatformDispatcherErrors = true,
+            )
+            .timeout(
+              const Duration(seconds: 5),
+              onTimeout: () => Future<void>.value(),
+            );
 
   final screenSecurityFuture = ScreenSecurityService.enable().timeout(
     const Duration(seconds: 5),
@@ -86,10 +90,9 @@ Future<void> main() async {
   );
   RealtimeCacheInvalidator.start();
 
-  runApp(ProviderScope(
-    observers: [_RiverpodErrorObserver()],
-    child: const MyApp(),
-  ));
+  runApp(
+    ProviderScope(observers: [_RiverpodErrorObserver()], child: const MyApp()),
+  );
 }
 
 /// Logs Riverpod provider errors and auto-recovers errored providers.

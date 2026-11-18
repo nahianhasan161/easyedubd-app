@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:easyedubd_app/core/cache/cache_service.dart';
 import 'package:easyedubd_app/core/device/device_provider.dart';
 import 'package:easyedubd_app/core/device/device_repository.dart';
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
@@ -51,14 +52,29 @@ class StartupController extends AsyncNotifier<AppStartupState> {
     return refresh();
   }
 
+  /// Silent re-check used when the app returns to the foreground.
+  ///
+  /// Unlike [refresh], this never puts the provider into `AsyncLoading`.
+  /// The router treats a loading startup state as "go to /splash", so a
+  /// loading flash on resume would throw the user out of whatever screen
+  /// they were on (e.g. the lesson player). The state is only touched when
+  /// the result actually changes, and a failed check keeps the previous
+  /// state instead of logging the user out.
   Future<AppStartupState> recheckOnResume() async {
-    // Same as initialize() but only updates state if the result changed.
     final previous = state.value;
-    final result = await refresh();
-    if (previous != null && previous != result) {
-      // state was already updated by refresh(); nothing more to do.
+    try {
+      final result = await _performStartupCheck().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () =>
+            throw TimeoutException('Startup timed out after 15 seconds'),
+      );
+      if (result != previous) {
+        state = AsyncData(result);
+      }
+      return result;
+    } catch (_) {
+      return previous ?? AppStartupState.unauthenticated;
     }
-    return result;
   }
 
   Future<AppStartupState> refresh() async {
@@ -111,8 +127,10 @@ class StartupController extends AsyncNotifier<AppStartupState> {
       // authenticated has necessarily passed profile-onboarding, and
       // re-running it offline would falsely bounce them to the onboarding
       // screen if the profile query times out.
-      return AppStartupState.authenticated;
+      return _fromLastKnownDeviceStatus(session.user.id);
     }
+
+    final userId = session.user.id;
 
     DeviceVerificationResult deviceResult;
     try {
@@ -120,18 +138,22 @@ class StartupController extends AsyncNotifier<AppStartupState> {
           .verifyCurrentDevice(deviceInfo)
           .timeout(_verifyDeviceTimeout);
     } on TimeoutException {
-      // Don't know if the device is still approved. Keep the user signed in
-      // (they have a valid session) and let them browse from the cache.
-      return AppStartupState.authenticated;
+      // Couldn't verify right now (slow network). Fall back to the last
+      // status the server gave us, so a pending/revoked device isn't let
+      // in just because the check timed out.
+      return _fromLastKnownDeviceStatus(userId);
     } catch (e) {
-      // Network error reaching Supabase - treat like offline: keep the user
-      // signed in so they can keep reading cached content.
       if (_isNetworkError(e)) {
-        return AppStartupState.authenticated;
+        return _fromLastKnownDeviceStatus(userId);
       }
       // Genuine server-side rejection (e.g. device revoked). Surface it.
       return AppStartupState.pendingDevice;
     }
+
+    await CacheService.setLastDeviceStatus(
+      userId,
+      deviceResult.status.name,
+    );
 
     switch (deviceResult.status) {
       case DeviceVerificationStatus.revoked:
@@ -175,6 +197,20 @@ class StartupController extends AsyncNotifier<AppStartupState> {
     }
 
     return AppStartupState.authenticated;
+  }
+
+  /// Used when `verify_device` can't be reached. A device that was last
+  /// seen as approved (or never checked before) keeps working from cache;
+  /// one last seen as pending/revoked stays on that screen.
+  AppStartupState _fromLastKnownDeviceStatus(String userId) {
+    switch (CacheService.getLastDeviceStatus(userId)) {
+      case 'revoked':
+        return AppStartupState.blockedDevice;
+      case 'pending':
+        return AppStartupState.pendingDevice;
+      default:
+        return AppStartupState.authenticated;
+    }
   }
 
   bool _isOffline() {

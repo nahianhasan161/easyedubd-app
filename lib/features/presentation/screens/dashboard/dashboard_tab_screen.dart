@@ -56,6 +56,17 @@ class _DashboardTabScreenState extends ConsumerState<DashboardTabScreen> {
     final allCourses = allCoursesAsync.value ?? const <Course>[];
     final isAllCoursesLoading = allCoursesAsync.isLoading && allCourses.isEmpty;
 
+    // Keep the "My Courses" list in sync when the enrollment IDs change.
+    // Without this, the dashboard can keep showing a removed course because
+    // `courseListProvider` still holds the stale enrolled-id set.
+    ref.listen(enrolledCourseIdsProvider, (previous, next) {
+      next.whenData(
+        (ids) => ref
+            .read(courseListProvider(true).notifier)
+            .setEnrolledCourseIds(ids),
+      );
+    });
+
     // Recommended: match the user's currentYear + department (subject),
     // excluding enrolled courses. Falls back to year-only, then to
     // "everything not enrolled" if either field is missing.
@@ -141,7 +152,10 @@ class _DashboardTabScreenState extends ConsumerState<DashboardTabScreen> {
     // Await the enrollment future so the My Courses slider has the
     // freshest set before it refetches.
     try {
-      await ref.read(enrolledCourseIdsProvider.future);
+      final ids = await ref.read(enrolledCourseIdsProvider.future);
+      ref
+          .read(courseListProvider(true).notifier)
+          .setEnrolledCourseIds(ids);
     } catch (_) {
       // The provider never errors by design, but be safe.
     }

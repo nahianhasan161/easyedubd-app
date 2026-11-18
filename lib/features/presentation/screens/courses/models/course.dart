@@ -117,14 +117,19 @@ class Course {
     return chapters.fold<int>(0, (sum, chapter) => sum + chapter.lessons.length);
   }
 
-  int get completedLessons {
+  /// Number of this course's lessons in [completedLessonIds] (the
+  /// signed-in user's progress from `completedLessonIdsProvider`).
+  int completedLessonsIn(Set<String> completedLessonIds) {
     return chapters.fold<int>(0, (sum, chapter) {
-      return sum + chapter.lessons.where((lesson) => lesson.isCompleted).length;
+      return sum +
+          chapter.lessons
+              .where((lesson) => completedLessonIds.contains(lesson.id))
+              .length;
     });
   }
 
-  double get completionPercentage {
+  double completionPercentageIn(Set<String> completedLessonIds) {
     if (totalLessons == 0) return 0.0;
-    return completedLessons / totalLessons;
+    return completedLessonsIn(completedLessonIds) / totalLessons;
   }
 }

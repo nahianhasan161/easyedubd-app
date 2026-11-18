@@ -1,8 +1,10 @@
+import 'package:easyedubd_app/core/progress/lesson_progress.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/course.dart';
 import 'package:easyedubd_app/shared/widgets/App_cached_image.dart';
 import 'package:flutter/material.dart';
 
-class CourseCard extends StatelessWidget {
+class CourseCard extends ConsumerWidget {
   final Course course;
   final VoidCallback onTap;
   final bool isEnrolled;
@@ -19,7 +21,12 @@ class CourseCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = isEnrolled
+        ? course.completionPercentageIn(
+            ref.watch(completedLessonIdsProvider).value ?? const <String>{},
+          )
+        : 0.0;
     final theme = Theme.of(context);
     final isFree = course.is_free;
     final originalPrice = course.price;
@@ -332,14 +339,14 @@ class CourseCard extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(6),
                             child: LinearProgressIndicator(
-                              value: course.completionPercentage.clamp(
+                              value: progress.clamp(
                                 0.0,
                                 1.0,
                               ),
                               minHeight: isCompact ? 6 : 8,
                               backgroundColor: Colors.grey.shade200,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                course.completionPercentage >= 1.0
+                                progress >= 1.0
                                     ? Colors.green
                                     : theme.colorScheme.primary,
                               ),
@@ -348,10 +355,10 @@ class CourseCard extends StatelessWidget {
                         ),
                         SizedBox(width: isCompact ? 6 : 10),
                         Text(
-                          '${(course.completionPercentage * 100).toInt()}%',
+                          '${(progress * 100).toInt()}%',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: course.completionPercentage >= 1.0
+                            color: progress >= 1.0
                                 ? Colors.green
                                 : Colors.grey.shade700,
                             fontSize: isCompact ? 10 : null,

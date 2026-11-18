@@ -1,6 +1,7 @@
 import 'package:easyedubd_app/core/providers/auth_provider.dart';
 import 'package:easyedubd_app/core/startup/startup_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/onboarding/onboarding_provider.dart';
+import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -42,6 +43,12 @@ final authListenable = Provider<Listenable>((ref) {
   // the splash screen to onboarding/login without recreating the router.
   ref.listen(onboardingCompletedProvider, (previous, next) {
     controller.refresh();
+  });
+
+  // Refresh when the profile resolves so the /admin guard (which lets
+  // navigation through while the profile is loading) can re-check the role.
+  ref.listen(currentProfileProvider, (previous, next) {
+    if (previous?.isLoading != next.isLoading) controller.refresh();
   });
 
   ref.onDispose(controller.dispose);

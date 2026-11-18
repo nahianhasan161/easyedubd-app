@@ -415,15 +415,5 @@ class CourseRepository {
     }
   }
 
-  Future<void> markLessonComplete(String lessonId, {required bool isComplete}) async {
-    await _supabase
-        .from('lesson')
-        .update({'isComplete': isComplete})
-        .eq('id', lessonId)
-        .timeout(
-          const Duration(seconds: 5),
-          onTimeout: () => throw TimeoutException('Lesson update timeout'),
-        );
-  }
 }
 

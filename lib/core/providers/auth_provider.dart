@@ -1,4 +1,4 @@
-import 'package:easyedubd_app/core/startup/startup_provider.dart';
+import 'package:easyedubd_app/core/progress/lesson_progress.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/providers/course_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/profile/profile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,6 +48,7 @@ final authResetProvider = Provider<void>((ref) {
 
     ref.invalidate(currentProfileProvider);
     ref.invalidate(enrolledCourseIdsProvider);
+    ref.invalidate(completedLessonIdsProvider);
     // Don't invalidate startupProvider here. The router redirect logic
     // reads startupState and will re-run the startup check if needed.
     // Invalidating it from this listener creates a loop because the

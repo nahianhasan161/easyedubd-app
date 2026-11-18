@@ -65,10 +65,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // to avoid bouncing admins during the initial load.
       if (state.matchedLocation.startsWith('/admin')) {
         final profileState = ref.read(currentProfileProvider);
-        final isAdmin =
-            !profileState.isLoading &&
-            profileState.value?.role?.toLowerCase() == 'admin';
-        if (!isAdmin) return '/dashboard';
+        // While the profile is still loading we can't tell yet, so let the
+        // navigation through; `authListenable` re-runs this redirect when
+        // the profile resolves and a non-admin is bounced then. (Admin data
+        // itself is protected by RLS, so the brief window is harmless.)
+        if (profileState.hasValue || profileState.hasError) {
+          final isAdmin =
+              profileState.value?.role?.toLowerCase() == 'admin';
+          if (!isAdmin) return '/dashboard';
+        }
       }
 
       // Diagnostic / utility screens that should remain reachable even when

@@ -1,3 +1,4 @@
+import 'package:easyedubd_app/core/progress/lesson_progress.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/lesson_player.dart';
 import 'package:easyedubd_app/core/providers/course_provider.dart';
 import 'package:easyedubd_app/core/services/course_access_service.dart';
@@ -474,16 +475,18 @@ class _CourseDetailsSkeleton extends StatelessWidget {
   }
 }
 
-class _CourseProgressBar extends StatelessWidget {
+class _CourseProgressBar extends ConsumerWidget {
   final Course course;
 
   const _CourseProgressBar({required this.course});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final done =
+        ref.watch(completedLessonIdsProvider).value ?? const <String>{};
     final total = course.totalLessons;
-    final completed = course.completedLessons;
-    final percentage = course.completionPercentage;
+    final completed = course.completedLessonsIn(done);
+    final percentage = course.completionPercentageIn(done);
     final theme = Theme.of(context);
 
     return Column(

@@ -108,10 +108,12 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
         break;
 
       case AppStartupState.authenticated:
-        // Refresh course & enrollment data so that courses/enrollments
-        // created while the app was backgrounded show up without a full
-        // restart (previously only "Clear Data" fixed the stale data).
-        _refreshCourseData();
+        // Nothing to do: `RealtimeCacheInvalidator.checkNow()` above
+        // already compares the server cache_version and, if anything
+        // changed while we were backgrounded, wipes the cache and emits
+        // on `invalidations` → `_onCacheInvalidated` reloads the lists.
+        // Reloading here as well raced with that reload (and only read
+        // the still-stale cache anyway).
         break;
 
       case AppStartupState.pendingDevice:
@@ -133,15 +135,6 @@ class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
       case AppStartupState.loading:
         break;
     }
-  }
-
-  void _refreshCourseData() {
-    // Drop the cached enrollment set so it is re-fetched.
-    ref.invalidate(enrolledCourseIdsProvider);
-    // Re-fetch both course lists (All Courses + My Courses) so newly
-    // added courses appear without restarting the app.
-    ref.read(courseListProvider(false).notifier).loadInitial();
-    ref.read(courseListProvider(true).notifier).loadInitial();
   }
 
   /// If the course list providers are currently in an error state, retry

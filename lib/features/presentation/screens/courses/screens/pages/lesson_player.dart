@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/lessons.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/models/chapter.dart';
-import 'package:easyedubd_app/core/providers/course_provider.dart';
+import 'package:easyedubd_app/core/progress/lesson_progress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LessonPlayerArgs {
@@ -95,8 +95,9 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
 
   void _seedCompletedLessons() {
     _completedLessons.clear();
+    final done = ref.read(completedLessonIdsProvider).value ?? const {};
     for (final lesson in widget.lessonsInChapter ?? const <Lesson>[]) {
-      if (lesson.isCompleted) {
+      if (done.contains(lesson.id)) {
         _completedLessons[lesson.id] = true;
       }
     }
@@ -288,20 +289,19 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
       return;
     }
 
-    final current = _completedLessons[lessonId] == true;
+    final current = _completedLessons[lessonId] ??
+        (ref.read(completedLessonIdsProvider).value?.contains(lessonId) ??
+            false);
     final newValue = !current;
 
-    final repository = ref.read(courseRepositoryProvider);
+    final repository = ref.read(lessonProgressRepositoryProvider);
     try {
-      await repository.markLessonComplete(lessonId, isComplete: newValue);
+      await repository.setCompleted(lessonId, completed: newValue);
+      ref.invalidate(completedLessonIdsProvider);
       if (mounted) {
-        setState(() {
-          if (newValue) {
-            _completedLessons[lessonId] = true;
-          } else {
-            _completedLessons.remove(lessonId);
-          }
-        });
+        // Store false too, so an un-complete isn't overridden by the
+        // (possibly stale) server set until it refetches.
+        setState(() => _completedLessons[lessonId] = newValue);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(newValue ? 'Lesson marked as complete' : 'Lesson marked as incomplete'),
@@ -326,10 +326,14 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
     final theme = Theme.of(context);
     final lessons = widget.lessonsInChapter ?? const <Lesson>[];
     final currentLessonId = widget.lessonId;
-    final isCurrentLessonComplete = currentLessonId == null
-        ? false
-        : (_completedLessons[currentLessonId] == true ||
-            (lessons.any((l) => l.id == currentLessonId && l.isCompleted)));
+    // Progress may still be loading when the player opens; merge it in
+    // once it arrives (local toggles in _completedLessons win).
+    final serverDone =
+        ref.watch(completedLessonIdsProvider).value ?? const <String>{};
+    bool isDone(String id) =>
+        _completedLessons[id] ?? serverDone.contains(id);
+    final isCurrentLessonComplete =
+        currentLessonId == null ? false : isDone(currentLessonId);
 
     return PopScope(
       canPop: true,
@@ -514,7 +518,7 @@ class _LessonPlayerState extends ConsumerState<LessonPlayer> {
                           itemBuilder: (context, index) {
                             final lesson = lessons[index];
                             final isCurrent = lesson.id == currentLessonId;
-                            final isComplete = lesson.isCompleted;
+                            final isComplete = isDone(lesson.id);
                             final effectiveComplete = isCurrent ? isCurrentLessonComplete : isComplete;
                             return Material(
                               color: isCurrent

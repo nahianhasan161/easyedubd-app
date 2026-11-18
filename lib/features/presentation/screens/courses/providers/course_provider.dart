@@ -2,7 +2,6 @@ import 'package:easyedubd_app/core/cache/cache_service.dart';
 import 'package:easyedubd_app/core/cache/realtime_cache_invalidator.dart';
 import 'package:easyedubd_app/core/network/connectivity_provider.dart';
 import 'package:easyedubd_app/core/network/retry.dart';
-import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/providers/course_list_provider.dart';
 import 'package:easyedubd_app/features/presentation/screens/courses/screens/pages/course_list/repository/enrollment_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
