@@ -4,7 +4,23 @@ on:
   push:
     branches:
       - main
+  # Google Play upload from main happens ONLY when you run this manually
+  # (Actions tab -> Production Release -> Run workflow) with upload_to_play = true.
   workflow_dispatch:
+    inputs:
+      upload_to_play:
+        description: "Upload this build to Google Play?"
+        type: boolean
+        default: false
+      play_track:
+        description: "Google Play track"
+        type: choice
+        default: production
+        options:
+          - production
+          - beta
+          - alpha
+          - internal
 
 permissions:
   contents: write
@@ -42,11 +58,16 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
+      # Unique, always-increasing versionCode (minutes since epoch) so Play
+      # never rejects an upload as a duplicate, across dev and main builds.
+      - name: Compute build number
+        run: echo "BUILD_NUMBER=$(( $(date +%s) / 60 ))" >> "$GITHUB_ENV"
+
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number=$BUILD_NUMBER
 
       - name: Build App Bundle
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --build-number=$BUILD_NUMBER
 
       - name: Copy APK
         run: cp build/app/outputs/flutter-apk/app-release.apk EasyEducationBD.apk
@@ -67,14 +88,12 @@ jobs:
           make_latest: true
           files: EasyEducationBD.apk
 
-      - name: Create Google Play credentials
-        run: |
-          echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > play-account.json
-
-      - name: Upload to Google Play Internal Testing
+      - name: Upload to Google Play (manual only)
+        if: github.event_name == 'workflow_dispatch' && inputs.upload_to_play
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJson: play-account.json
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.easyeducationbd.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          tracks: internal
+          tracks: ${{ inputs.play_track }}
+          status: completed
